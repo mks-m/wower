@@ -28,7 +28,7 @@
 -define(AUTH_RESPONSE, <<>>).
 -define(AUTH_ERROR,    <<0:8, 0:8, Error:8>>).
 
--record(account, {name, password, banned}).
+-record(account, {name, password="", banned=false}).
 
 start() ->
     mnesia:start(),
@@ -73,7 +73,8 @@ handle(Socket, []) ->
             gen_tcp:send(Socket, Response),
             handle(Socket, []);
         {error, Reason} ->
-            io:format("error in handle auth request: ~p~n", [Reason])
+            io:format("error: ~p~n", [Reason]),
+            handle(Socket, [])
         end;
     {error, closed} ->
             ok
@@ -81,7 +82,7 @@ handle(Socket, []) ->
 handle(Socket, Args) ->
     case gen_tcp:recv(Socket, 0) of
         {ok, Data} ->
-             io:format("unknown data ~p~n", [Data]),
+            io:format("unknown data ~p~n", [Data]),
             gen_tcp:send(Socket, Data),
             handle(Socket, Args);
         {error, closed} ->
@@ -89,10 +90,15 @@ handle(Socket, Args) ->
     end.
 
 handle_auth_request(AccountId) ->
-    case mnesia:read({account, AccountId}) of
-    [AccountRecord] -> {ok, AccountRecord, ?AUTH_RESPONSE};
-    [] -> Error = ?ERR_NO_ACCOUNT, {fail, ?AUTH_ERROR};
-    _ -> Error = ?ERR_IPBAN, {fail, ?AUTH_ERROR}
+    case mnesia:dirty_read({account, AccountId}) of
+    [] -> 
+        Error = ?ERR_NO_ACCOUNT, 
+        {fail, ?AUTH_ERROR};
+    [AccountRecord] ->  
+        {ok, AccountRecord, ?AUTH_RESPONSE};
+    _ ->  
+        Error = ?ERR_IPBAN, 
+        {fail, ?AUTH_ERROR}
     end.
 
 install() ->

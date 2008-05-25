@@ -1,0 +1,1 @@
+-record(account, {name, password="", banned=false}).

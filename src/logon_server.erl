@@ -37,7 +37,8 @@ loop_listener(LSocket) ->
 accept(LSocket, Clients) ->
     case gen_tcp:accept(LSocket) of
         {ok, Socket} ->
-            spawn(logon_handlers, loop, [Socket]),
+            Client = spawn(logon_clients, new, []),
+            spawn(logon_handlers, loop, [Socket, Client]),
             accept(LSocket, [Socket | Clients]);
         {error, closed} ->
             [ gen_tcp:close(Socket) || Socket <- Clients ],

@@ -11,9 +11,6 @@ start() ->
     crypto:start(),
     mnesia:start(),
     mnesia:wait_for_tables([account], 20000),
-    mnesia:dirty_write({account, #account{name="test", 
-                                          password="tset", 
-                                          hash=crypto:sha("test:tset")}}),
     spawn(?MODULE, listen, []).
 
 install() ->
@@ -22,6 +19,9 @@ install() ->
     mnesia:start(),
     mnesia:create_table(account, [{attributes, record_info(fields, account)},
                                   {disc_copies, [node()]}]),
+    mnesia:dirty_write(account, #account{name="TEST", 
+                                         password="TSET", 
+                                         hash=crypto:sha("test:tset")}),
     mnesia:stop(),
     ok.
 

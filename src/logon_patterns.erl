@@ -20,3 +20,7 @@ auth_request(<<Cmd:?B, Err:?B, Size:?W, Game:4?b,
 auth_request(_) -> 
     io:format("auth request fails~n", []),
     fail.
+
+auth_reply(A, B, C, D) ->
+    <<0:16, (logon_opcodes:get(error_success)):8, A:256, 
+      1:8, 7:8, 32:8, B:256, C:256, D:128, 0:8>>.

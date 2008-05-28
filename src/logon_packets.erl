@@ -2,6 +2,7 @@
 -export([receiver/2, encoder/1]).
 
 -include("logon_records.hrl").
+-define(N, 16#894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7).
 
 error(C) when atom(C) ->
     <<0:8, 0:8, (logon_opcodes:get(C)):8>>;
@@ -27,7 +28,8 @@ receiver(Socket, Pid) ->
                 gen_tcp:send(Socket, error(error_account_missing)),
                 receiver(Socket, Pid);
             [AccountRecord] -> 
-                Response = rpc(Pid, {auth_request, AccountRecord}),
+                {A, B, C} = hash(AccountRecord),
+                Response = logon_patterns:auth_reply(A, ?N, B, C),
                 gen_tcp:send(Socket, logon_patterns:encode(Response)),
                 decoder(Socket, Pid, hash(AccountRecord));
             _ ->
@@ -57,11 +59,11 @@ encoder(Hash) ->
 
 hash(Account) ->
     S = random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
-    B = random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
-    N = 16#894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7,
-    <<H:256/integer>> = crypto:sha(<<S:256, (Account#account.hash)/binary>>),
-    X = crypto:mod_exp(7, H, N),
-    ok.
+    <<X:256/integer>> = crypto:sha(<<S:256, (Account#account.hash)/binary>>),
+    V = crypto:mod_exp(7, X, ?N),
+    B = random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
+    G = crypto:mod_exp(7, B, ?N),
+    {crypto:mod_exp(V*3+G, 1, ?N), S, random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)}.
 
 rpc(Pid, Data) ->
     Pid ! {self(), Data},

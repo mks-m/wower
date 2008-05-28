@@ -8,6 +8,7 @@
 -include("logon_records.hrl").
 
 start() ->
+    crypto:start(),
     mnesia:start(),
     mnesia:wait_for_tables([accounts], 20000),
     spawn(?MODULE, listen, [[]]).
@@ -24,21 +25,13 @@ install() ->
 listen([]) ->
     {ok, LSocket} = gen_tcp:listen(?PORT, ?OPTIONS),
     spawn(?MODULE, accept, [LSocket, []]),
-    loop_listener(LSocket).
-
-loop_listener(LSocket) ->
-    receive
-        stop ->
-            gen_tcp:close(LSocket);
-        _ ->
-            loop_listener(LSocket)
-    end.
+    receive stop -> gen_tcp:close() end.
 
 accept(LSocket, Clients) ->
     case gen_tcp:accept(LSocket) of
         {ok, Socket} ->
             Client = spawn(logon_clients, new, []),
-            spawn(logon_handlers, loop, [Socket, Client]),
+            spawn(logon_packets, receiver, [Socket, Client]),
             accept(LSocket, [Socket | Clients]);
         {error, closed} ->
             [ gen_tcp:close(Socket) || Socket <- Clients ],

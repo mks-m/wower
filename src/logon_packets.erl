@@ -1,5 +1,5 @@
 -module(logon_packets).
--export([receiver/2]).
+-export([receiver/2, hash/1]).
 
 error(C) when atom(C) ->
     <<0:8, 0:8, (logon_opcodes:get(C)):8>>;
@@ -9,6 +9,12 @@ error(C) ->
     io:format("wrong errorcode: ~p~n", [C]),
     <<0:8, 0:8, 1:8>>.
 
+%%
+%% receiver can receive only auth_request packet
+%% and will try to find account and generate 
+%% authentication hash for connection
+%% will switch to decoder if such hash generated
+%%
 receiver(Socket, Pid) ->
     case gen_tcp:recv(Socket, 0) of
     {ok, Data} ->
@@ -33,31 +39,26 @@ receiver(Socket, Pid) ->
         ok
     end.
 
-hash(_) ->
-    ok.
-
 decoder(Socket, Pid, Hash) ->
     case gen_tcp:recv(Socket, 0) of
-    {ok, Data} ->
-        case logon_patterns:auth_request(Data) of
-        {ok, auth_request, Account} ->
-            Hash = hash(Account),
-            decoder(Socket, Pid, Hash);
-        fail ->
-            receiver(Socket, Pid)
-        end;
+    {ok, _Data} ->
+        %% decode packet here
+        %% match packet structure
+        %% call handler
+        decoder(Socket, Pid, Hash);
     {error, closed} ->
         ok
     end.
 
-rpc(Pid, Data) ->
-    Pid ! Data,
-    response(Pid).
+hash(Account) ->
+    S = random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
+    N = 16#894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7,
+    G = 7,
+    ok.
 
-response(Pid) ->
+rpc(Pid, Data) ->
+    Pid ! {self(), Data},
     receive
     {Pid, Response} -> 
-        Response;
-    _ -> 
-        response(Pid)
+        {self(), Response}
     end.

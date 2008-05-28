@@ -6,12 +6,8 @@
 new() ->
     initial(#state{}).
 
-initial(State) ->
+initial(#state{account=null, hash=null}) ->
     receive
-        {auth_request, Account} ->
-            Account;
-        _ ->
-            initial(State)
-    after 
-        50 -> initial(State)
+        {authenticate, Account} -> 
+            initial(#state{account=Account})
     end.

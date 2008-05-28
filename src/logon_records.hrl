@@ -1,1 +1,1 @@
--record(account, {name, password="", banned=false}).
+-record(account, {name, password="", hash=null, banned=false}).

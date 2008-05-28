@@ -1,6 +1,6 @@
 -module(logon_server).
 
--export([start/0, listen/1, accept/2, install/0]).
+-export([start/0, listen/0, accept/2, install/0]).
 
 -define(PORT, 3724).
 -define(OPTIONS, [binary, {packet, 0}, {active, false}, {reuseaddr, true}]).
@@ -10,8 +10,11 @@
 start() ->
     crypto:start(),
     mnesia:start(),
-    mnesia:wait_for_tables([accounts], 20000),
-    spawn(?MODULE, listen, [[]]).
+    mnesia:wait_for_tables([account], 20000),
+    mnesia:dirty_write({account, #account{name="test", 
+                                          password="tset", 
+                                          hash=crypto:sha("test:tset")}}),
+    spawn(?MODULE, listen, []).
 
 install() ->
     mnesia:delete_schema([node()]),
@@ -22,10 +25,10 @@ install() ->
     mnesia:stop(),
     ok.
 
-listen([]) ->
+listen() ->
     {ok, LSocket} = gen_tcp:listen(?PORT, ?OPTIONS),
     spawn(?MODULE, accept, [LSocket, []]),
-    receive stop -> gen_tcp:close() end.
+    receive stop -> gen_tcp:close(LSocket) end.
 
 accept(LSocket, Clients) ->
     case gen_tcp:accept(LSocket) of

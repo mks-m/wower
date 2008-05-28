@@ -1,5 +1,7 @@
 -module(logon_packets).
--export([receiver/2, hash/1]).
+-export([receiver/2, encoder/1]).
+
+-include("logon_records.hrl").
 
 error(C) when atom(C) ->
     <<0:8, 0:8, (logon_opcodes:get(C)):8>>;
@@ -50,10 +52,15 @@ decoder(Socket, Pid, Hash) ->
         ok
     end.
 
+encoder(Hash) ->
+    Hash.
+
 hash(Account) ->
     S = random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
+    B = random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
     N = 16#894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7,
-    G = 7,
+    <<H:256/integer>> = crypto:sha(<<S:256, (Account#account.hash)/binary>>),
+    X = crypto:mod_exp(7, H, N),
     ok.
 
 rpc(Pid, Data) ->

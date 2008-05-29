@@ -1,17 +1,26 @@
 -module(logon_packets).
--export([receiver/2, encoder/1]).
+-export([receiver/2, encoder/1, even/1, odd/1]).
+
+-define(QQ, :256/unsigned-little-integer).
+-define(SH, :160/unsigned-little-integer).
+-define(DQ, :128/unsigned-little-integer).
+-define(Q,   :64/unsigned-little-integer).
+-define(L,   :32/unsigned-little-integer).
+-define(W,   :16/unsigned-little-integer).
+-define(B,    :8/unsigned-little-integer).
+-define(b,      /bytes).
 
 -include("logon_records.hrl").
 -define(N, 16#894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7).
 -define(CHECK, io:format("check~n", [])).
 
 error(C) when atom(C) ->
-    <<0:8, 0:8, (logon_opcodes:get(C)):8>>;
+    <<0?B, 0?B, (logon_opcodes:get(C))?B>>;
 error(C) when integer(C) ->
-    <<0:8, 0:8, C:8>>;
+    <<0?B, 0?B, C?B>>;
 error(C) ->
     io:format("wrong errorcode: ~p~n", [C]),
-    <<0:8, 0:8, 1:8>>.
+    <<0?B, 0?B, 1?B>>.
 
 %%
 %% receiver can receive only auth_request packet
@@ -23,7 +32,7 @@ receiver(Socket, Pid) ->
     case gen_tcp:recv(Socket, 0) of
     {ok, Data} ->
         case logon_patterns:auth_request(Data) of
-        {ok, auth_request, Account} ->
+        {ok, Account} ->
             case mnesia:dirty_read({account, Account}) of
             [] -> 
                 gen_tcp:send(Socket, error(error_account_missing)),
@@ -32,39 +41,92 @@ receiver(Socket, Pid) ->
                 H = hash(AccountRecord),
                 Response = logon_patterns:auth_reply(H),
                 gen_tcp:send(Socket, Response),
-                decoder(Socket, Pid, H);
+                handshaker(Socket, Pid, H, AccountRecord);
             _ ->
                 gen_tcp:send(Socket, error(error_account_missing)),
                 receiver(Socket, Pid)
             end;
-        fail ->
+        _ ->
             receiver(Socket, Pid)
         end;
     {error, closed} ->
-        ok
+        close()
+    end.
+
+handshaker(Socket, Pid, Hash, Account) ->
+    case gen_tcp:recv(Socket, 0) of
+    {ok, Data} ->
+        case logon_patterns:auth_proof(Data) of
+        {ok, {A, M, C, N}} ->
+            <<U?SH>>  = crypto:sha(<<A?QQ, (element(1, Hash))?QQ>>),
+            S1 = crypto:mod_exp(element(3, Hash), U, element(2, Hash)),
+            S2 = crypto:mod_exp(S1 * A, element(4, Hash), element(1, Hash)),
+            T0 = binary_to_list(<<S2>>),
+            T1 = binary_to_list(crypto:sha(even(T0))),
+            T2 = binary_to_list(crypto:sha(odd(T0))),
+            SK = merge(T1, T2),
+            S  = binary_to_list(crypto:sha(<<(element(1, Hash))?QQ>>)),
+            X  = binary_to_list(crypto:sha(<<7?B>>)),
+            SX = crypto:sha(merge_xor(S, X)),
+            AN = crypto:sha(Account#account.name),
+            ?CHECK,
+            BSH = binary_to_list(<<SX, AN, (element(5, Hash))?QQ, 
+                                   A?QQ, (element(1, Hash))?QQ, SK?b>>),
+            ?CHECK,
+            <<SH?SH>> = crypto:sha(BSH),
+            ?CHECK,
+            io:format("must be equal:~n~p~n~p~n", [M, SH]),
+            ?CHECK,
+            decoder(Socket, Pid, Hash);
+        _ ->
+            io:format("unknown packet: ~p~n", [Data]),
+            handshaker(Socket, Pid, Hash, Account)
+        end;
+    {error, closed} ->
+        close()
     end.
 
 decoder(Socket, Pid, Hash) ->
     case gen_tcp:recv(Socket, 0) of
-    {ok, Data} ->
+    {ok, _Data} ->
         %% decode packet here
         %% match packet structure
         %% call handler
         decoder(Socket, Pid, Hash);
     {error, closed} ->
-        ok
+        close()
     end.
 
 encoder(Hash) ->
     Hash.
 
 hash(Account) ->
-    S = random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
-    <<X:160/integer>> = crypto:sha(<<S:256, (Account#account.hash)/bytes>>),
-    V = crypto:mod_exp(7, X, ?N),
-    B = random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
-    G = crypto:mod_exp(7, B, ?N),
-    {crypto:mod_exp(V*3+G, 1, ?N), ?N, S, random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)}.
+    RandomSha = random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
+    U         = random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
+    <<X?SH>>  = crypto:sha(<<RandomSha?QQ, (Account#account.hash)?b>>),
+    V         = crypto:mod_exp(7, X, ?N),
+    B         = random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
+    G         = crypto:mod_exp(7, B, ?N),
+    R         = crypto:mod_exp(V*3+G, 1, ?N), 
+    {R, ?N, V, B, RandomSha, U}.
+
+even([X,_]) ->      [X];
+even([_]) ->        [];
+even([X|[_|Z]]) ->  [X | even(Z)].
+
+odd([_,X]) ->      [X];
+odd([X]) ->        [X];
+odd([_|[X|Z]]) ->  [X | odd(Z)].
+
+merge([], []) ->
+    [];
+merge([H1|T1], [H2|T2]) ->
+    [H1|[H2|merge(T1, T2)]].
+
+merge_xor([], []) ->
+    [];
+merge_xor([H1|T1], [H2|T2]) ->
+    [(H1 bxor H2) | merge_xor(T1, T2)].
 
 rpc(Pid, Data) ->
     Pid ! {self(), Data},
@@ -72,3 +134,7 @@ rpc(Pid, Data) ->
     {Pid, Response} -> 
         {self(), Response}
     end.
+
+close() ->
+    io:format("  client socket closed~n", []),
+    ok.

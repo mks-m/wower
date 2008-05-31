@@ -40,7 +40,7 @@ install() ->
                                   {disc_copies, [node()]}]),
     mnesia:dirty_write(account, #account{name="TEST", 
                                          password="TSET", 
-                                         hash=crypto:sha("test:tset")}),
+                                         hash=crypto:sha("TEST:TSET")}),
     ok.
 
 listen() ->

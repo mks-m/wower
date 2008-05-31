@@ -70,10 +70,10 @@ handshaker(Socket, Pid, Hash, Account) ->
             SX = crypto:sha(merge_xor(S, X)),
             AN = crypto:sha(Account#account.name),
             ?CHECK,
-            BSH = binary_to_list(<<SX, AN, (element(5, Hash))?QQ, 
-                                   A?QQ, (element(1, Hash))?QQ, SK?b>>),
+            BSH = binary_to_list(<<SX?b, AN?b, (element(5, Hash))?QQ, 
+                                   A?QQ, (element(1, Hash))?QQ>>),
             ?CHECK,
-            <<SH?SH>> = crypto:sha(BSH),
+            <<SH?SH>> = crypto:sha(lists:append(BSH, SK)),
             ?CHECK,
             io:format("must be equal:~n~p~n~p~n", [M, SH]),
             ?CHECK,
@@ -89,9 +89,6 @@ handshaker(Socket, Pid, Hash, Account) ->
 decoder(Socket, Pid, Hash) ->
     case gen_tcp:recv(Socket, 0) of
     {ok, _Data} ->
-        %% decode packet here
-        %% match packet structure
-        %% call handler
         decoder(Socket, Pid, Hash);
     {error, closed} ->
         close()

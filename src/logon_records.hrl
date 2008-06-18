@@ -1,1 +1,2 @@
 -record(account, {name, password="", hash=null, banned=false}).
+-record(hash, {main, static, second, r152, r256, r128}).

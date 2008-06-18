@@ -1,6 +1,8 @@
 -module(logon_patterns).
 -compile(export_all).
 
+-include("logon_records.hrl").
+
 -define(QQ, :256/unsigned-little-integer).
 -define(SH, :160/unsigned-little-integer).
 -define(DQ, :128/unsigned-little-integer).
@@ -21,8 +23,8 @@ auth_request(_) ->
 %%                      Platform, Os, Country, TimeZone, IP, Account}};
 
 auth_reply(H) ->
-    <<0?B, 0?B, 0?B, (element(1, H))?QQ, 1?B, 7?B, 32?B, (element(2, H))?QQ, 
-      (element(5, H))?QQ, (element(6, H))?DQ, 0?B>>.
+    <<0?B, 0?B, 0?B, (H#hash.main)?QQ, 1?B, 7?B, 32?B, (H#hash.static)?QQ, 
+      (H#hash.r256)?QQ, (H#hash.r128)?DQ, 0?B>>.
 
 auth_proof(<<1?B, A?QQ, M?SH, C?SH, N?B, _U?B>>) ->
     {ok, {A, M, C, N}};

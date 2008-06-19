@@ -1,5 +1,5 @@
 -module(logon_packets).
--export([receiver/2, encoder/1, even/1, odd/1]).
+-export([receiver/2, encoder/1]).
 
 -define(QQ, :256/unsigned-little-integer).
 -define(SH, :160/unsigned-little-integer).
@@ -59,23 +59,21 @@ handshaker(Socket, Pid, Hash, Account) ->
         case logon_patterns:auth_proof(Data) of
         {ok, {A, M, C, N}} ->
             <<U?SH>>  = crypto:sha(<<A?QQ, (Hash#hash.main)?QQ>>),
-            S1 = crypto:mod_exp(Hash#hash.second, U, Hash#hash.static),
-            S2 = crypto:mod_exp(S1 * A, Hash#hash.r152, Hash#hash.static),
-            T0 = binary_to_list(<<S2>>),
+            S1 = crypto:mod_exp(Hash#hash.second, U, ?N),
+            S2 = crypto:mod_exp(S1 * A, Hash#hash.r152, ?N),
+            T0 = binary_to_list(<<S2/unsigned-little-integer>>),
             T1 = binary_to_list(crypto:sha(even(T0))),
             T2 = binary_to_list(crypto:sha(odd(T0))),
             SK = merge(T1, T2),
 
-            S   = binary_to_list(crypto:sha(<<(Hash#hash.static)?QQ>>)),
+            S   = binary_to_list(crypto:sha(<<(?N)?QQ>>)),
             X   = binary_to_list(crypto:sha(<<7?B>>)),
             SX  = crypto:sha(merge_xor(S, X)),
             AN  = crypto:sha(Account#account.name),
             BSH = binary_to_list(<<SX?b, AN?b, (Hash#hash.r256)?QQ, 
                                    A?QQ, (Hash#hash.main)?QQ>>),
-            <<SH?SH>> = crypto:sha(BSH ++ SK),
-            ?CHECK,
-            io:format("must be equal:~n~p~n~p~n", [M, SH]),
-            ?CHECK,
+            SH = crypto:sha(BSH ++ SK),
+            io:format("must be equal:~n~p~n~p~n", [<<M?SH>>, SH]),
             decoder(Socket, Pid, Hash);
         _ ->
             io:format("unknown packet: ~p~n", [Data]),
@@ -121,7 +119,7 @@ odd([_|[X|Z]]) -> [X | odd(Z)].
 merge([], []) ->
     [];
 merge([H1|T1], [H2|T2]) ->
-    [H1|[H2|merge(T1, T2)]].
+    [H1,H2|merge(T1, T2)].
 
 merge_xor([], []) ->
     [];

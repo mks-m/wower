@@ -38,9 +38,9 @@ install() ->
     mnesia:create_schema([node()]),
     mnesia:create_table(account, [{attributes, record_info(fields, account)},
                                   {disc_copies, [node()]}]),
-    mnesia:dirty_write(account, #account{name="TEST", 
-                                         password="TSET", 
-                                         hash=crypto:sha("TEST:TSET")}),
+    mnesia:dirty_write(account, #account{name     = "TEST", 
+                                         password = "TEST", 
+                                         hash     = crypto:sha("TEST:TEST")}),
     ok.
 
 listen() ->

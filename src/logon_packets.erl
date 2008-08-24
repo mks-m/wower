@@ -1,13 +1,14 @@
 -module(logon_packets).
 -export([receiver/2, encoder/1]).
 
--define(QQ, :256/unsigned-little-integer).
--define(SH, :160/unsigned-little-integer).
--define(DQ, :128/unsigned-little-integer).
--define(Q,   :64/unsigned-little-integer).
--define(L,   :32/unsigned-little-integer).
--define(W,   :16/unsigned-little-integer).
--define(B,    :8/unsigned-little-integer).
+-define(IN, /unsigned-little-integer).
+-define(QQ, :256?IN).
+-define(SH, :160?IN).
+-define(DQ, :128?IN).
+-define(Q,   :64?IN).
+-define(L,   :32?IN).
+-define(W,   :16?IN).
+-define(B,    :8?IN).
 -define(b,      /bytes).
 
 -include("logon_records.hrl").
@@ -57,23 +58,8 @@ handshaker(Socket, Pid, Hash, Account) ->
     case gen_tcp:recv(Socket, 0) of
     {ok, Data} ->
         case logon_patterns:auth_proof(Data) of
-        {ok, {A, M, C, N}} ->
-            <<U?SH>>  = crypto:sha(<<A?QQ, (Hash#hash.main)?QQ>>),
-            S1 = crypto:mod_exp(Hash#hash.second, U, ?N),
-            S2 = crypto:mod_exp(S1 * A, Hash#hash.r152, ?N),
-            T0 = binary_to_list(<<S2/unsigned-little-integer>>),
-            T1 = binary_to_list(crypto:sha(even(T0))),
-            T2 = binary_to_list(crypto:sha(odd(T0))),
-            SK = merge(T1, T2),
-
-            S   = binary_to_list(crypto:sha(<<(?N)?QQ>>)),
-            X   = binary_to_list(crypto:sha(<<7?B>>)),
-            SX  = crypto:sha(merge_xor(S, X)),
-            AN  = crypto:sha(Account#account.name),
-            BSH = binary_to_list(<<SX?b, AN?b, (Hash#hash.r256)?QQ, 
-                                   A?QQ, (Hash#hash.main)?QQ>>),
-            SH = crypto:sha(BSH ++ SK),
-            io:format("must be equal:~n~p~n~p~n", [<<M?SH>>, SH]),
+        {ok, {A, M}} ->
+            proof(A, M, Hash, Account),
             decoder(Socket, Pid, Hash);
         _ ->
             io:format("unknown packet: ~p~n", [Data]),
@@ -95,16 +81,32 @@ encoder(Hash) ->
     Hash.
 
 hash(Account) ->
-    R256     = random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
-    <<X?SH>> = crypto:sha(<<R256?QQ, (Account#account.hash)?b>>),
-    Second   = crypto:mod_exp(7, X, ?N),
+    G        = 7,
+    Salt     = 16#B4A2BA1BECF0034B869FA1BE8460C73C69C84FAF43710A1F0700D7E68F4531EB, % random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
+    B        = 16#73CA17CFC1E4EA1A30A169D3BF471C0962622785818C4FCE903128D82258BE25, % random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
+    <<X?SH>> = crypto:sha(<<Salt?QQ, (Account#account.hash)?b>>),
+    Verifier = crypto:mod_exp(G, X, ?N),
+    Temp     = crypto:mod_exp(G, B, ?N),
+    Public   = crypto:mod_exp(Verifier*3+Temp, 1, ?N),
+    #hash{public=Public, secret=B, modulus=?N, verifier=Verifier, salt=Salt}.
 
-    R152     = random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
-    Temp     = crypto:mod_exp(7, R152, ?N),
-    Main     = crypto:mod_exp(Second*3+Temp, 1, ?N),
-
-    R128     = random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
-    #hash{main=Main, static=?N, second=Second, r152=R152, r256=R256, r128=R128}.
+proof(A, M, H, P) ->
+    <<U?SH>>  = crypto:sha(<<A?QQ, (H#hash.public)?QQ>>),
+    S1 = crypto:mod_exp(H#hash.verifier, U, ?N),
+    S2 = crypto:mod_exp(S1 * A, H#hash.secret, ?N),
+    T0 = binary_to_list(<<S2:320?IN>>),
+    T1 = binary_to_list(crypto:sha(even(T0))),
+    T2 = binary_to_list(crypto:sha(odd(T0))),
+    SK = merge(T1, T2),
+    <<S?SH>> = crypto:sha(<<(?N)?QQ>>),
+    <<X?SH>> = crypto:sha(<<7?B>>),
+    SX  = crypto:sha(<<(S bxor X)?SH>>),
+    AN  = crypto:sha(P#account.name),
+    BSH = binary_to_list(<<SX?b, AN?b, (H#hash.salt)?QQ, 
+                           A?QQ, (H#hash.public)?QQ>>),
+    SH  = crypto:sha(BSH ++ SK),
+    io:format("must be equal:~n~p~n~p~n", [<<M?SH>>, SH]),
+    ok.
 
 even([X,_,Z]) ->   [X, Z];
 even([X,_]) ->     [X];
@@ -120,11 +122,6 @@ merge([], []) ->
     [];
 merge([H1|T1], [H2|T2]) ->
     [H1,H2|merge(T1, T2)].
-
-merge_xor([], []) ->
-    [];
-merge_xor([H1|T1], [H2|T2]) ->
-    [(H1 bxor H2) | merge_xor(T1, T2)].
 
 close() ->
     io:format("  client socket closed~n", []),

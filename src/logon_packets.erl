@@ -82,12 +82,11 @@ encoder(Hash) ->
 
 hash(Account) ->
     G        = 7,
-    Salt     = 16#B4A2BA1BECF0034B869FA1BE8460C73C69C84FAF43710A1F0700D7E68F4531EB, % random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
-    B        = 16#73CA17CFC1E4EA1A30A169D3BF471C0962622785818C4FCE903128D82258BE25, % random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
+    Salt     = 16#B4A2BA1BECF0034B869FA1BE8460C73C69C84FAF43710A1F0700D7E68F4531EB, % will be random
+    B        = 16#73CA17CFC1E4EA1A30A169D3BF471C0962622785818C4FCE903128D82258BE25, % will be random
     <<X?SH>> = crypto:sha(<<Salt?QQ, (Account#account.hash)?b>>),
     Verifier = crypto:mod_exp(G, X, ?N),
-    Temp     = crypto:mod_exp(G, B, ?N),
-    Public   = crypto:mod_exp(Verifier*3+Temp, 1, ?N),
+    Public   = crypto:mod_exp(Verifier * 3 + crypto:mod_exp(G, B, ?N), 1, ?N),
     #hash{public=Public, secret=B, modulus=?N, verifier=Verifier, salt=Salt}.
 
 proof(A, M, H, P) ->

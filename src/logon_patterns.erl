@@ -13,10 +13,10 @@
 -define(B,    :8?IN).
 -define(b,      /bytes).
 
-auth_request(<<0?B, Err?B, Size?W, Game:4?b, Major?B, 
-               Middle?B, Minor?B, Build?W, Platform:4?b, 
-               Os:4?b, Country:4?b, TimeZone?L, IP:4?b, 
-               Length?B, Account:Length?b>>) ->
+auth_request(<<0?B, _Err?B, _Size?W, _Game:4?b, _Major?B, 
+               _Middle?B, _Minor?B, _Build?W, _Platform:4?b, 
+               _Os:4?b, _Country:4?b, _TimeZone?L, _IP:4?b, 
+               _Length?B, Account:_Length?b>>) ->
     {ok, binary_to_list(Account)};
 auth_request(_) ->
     no.

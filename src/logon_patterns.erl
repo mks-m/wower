@@ -4,18 +4,19 @@
 -include("logon_records.hrl").
 
 -define(IN, /unsigned-little-integer).
--define(QQ, :256?IN).
--define(SH, :160?IN).
--define(DQ, :128?IN).
--define(Q,   :64?IN).
--define(L,   :32?IN).
--define(W,   :16?IN).
--define(B,    :8?IN).
--define(b,      /bytes).
+-define(NI, /unsigned-big-integer).
+-define(b,  /bytes).
+-define(QQ, :256).
+-define(SH, :160).
+-define(DQ, :128).
+-define(Q,   :64).
+-define(L,   :32).
+-define(W,   :16).
+-define(B,    :8).
 
-auth_request(<<0?B, _Err?B, _Size?W, _Game:4?b, _Major?B, 
-               _Middle?B, _Minor?B, _Build?W, _Platform:4?b, 
-               _Os:4?b, _Country:4?b, _TimeZone?L, _IP:4?b, 
+auth_request(<<0?B, _Err?B, _Size?W?IN, _Game:4?b, _Major?B, 
+               _Middle?B, _Minor?B, _Build?W?IN, _Platform:4?b, 
+               _Os:4?b, _Country:4?b, _TimeZone?L?IN, _IP:4?b, 
                _Length?B, Account:_Length?b>>) ->
     {ok, binary_to_list(Account)};
 auth_request(_) ->
@@ -24,11 +25,11 @@ auth_request(_) ->
 %%                      Platform, Os, Country, TimeZone, IP, Account}};
 
 auth_reply(H) ->
-    <<0?B, 0?B, 0?B, (H#hash.public)?QQ,
-      1?B, 7?B, 32?B, (H#hash.modulus)?QQ,
-      (H#hash.salt)?QQ, 0?DQ, 0?B >>.
+    <<0?B, 0?B, 0?B, (H#hash.public)?QQ?IN,
+      1?B, 7?B, 32?B, (H#hash.modulus)?QQ?IN,
+      (H#hash.salt)?QQ?IN, 0?DQ, 0?B >>.
 
-auth_proof(<<1?B, A?QQ, M?SH, _C?SH, _N?B, _U?B>>) ->
+auth_proof(<<1?B, A?QQ?IN, M?SH?IN, _C?SH?IN, _N?B, _U?B>>) ->
     {ok, {A, M}};
 auth_proof(_) ->
     no.

@@ -8,6 +8,7 @@
 -include("logon_records.hrl").
 
 start() ->
+    c:l(srp6),
     c:l(logon_server),
     c:l(logon_clients),
     c:l(logon_opcodes),
@@ -39,8 +40,7 @@ install() ->
     mnesia:create_table(account, [{attributes, record_info(fields, account)},
                                   {disc_copies, [node()]}]),
     mnesia:dirty_write(account, #account{name     = "TEST", 
-                                         password = "TEST", 
-                                         hash     = crypto:sha("TEST:TEST")}),
+                                         password = "TEST"}),
     ok.
 
 listen() ->

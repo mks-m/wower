@@ -1,39 +1,67 @@
 -module(srp6).
--export([challenge/1, proof/2, test/0]).
+-export([challenge/1, proof/3, sha/1, test/0]).
+-include("logon_records.hrl").
 
 -define(IN, /unsigned-little-integer).
 -define(NI, /unsigned-big-integer).
--define(QQ, :256?IN).
--define(SH, :160?IN).
--define(DQ, :128?IN).
--define(Q,   :64?IN).
--define(L,   :32?IN).
--define(W,   :16?IN).
--define(B,    :8?IN).
--define(b,      /bytes).
+-define(b,  /bytes).
+-define(QQ, :256).
+-define(SH, :160).
+-define(DQ, :128).
+-define(Q,   :64).
+-define(L,   :32).
+-define(W,   :16).
+-define(B,    :8).
 
-challenge(Credentials) ->
-    Modulus   = 16#894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7, 
-    Generator = 7,
-    Salt      = 16#B4A2BA1BECF0034B869FA1BE8460C73C69C84FAF43710A1F0700D7E68F4531EB, % will be random
-    SecretB   = 16#73CA17CFC1E4EA1A30A169D3BF471C0962622785818C4FCE903128D82258BE25, % will be random
-    X         = sha(<<Salt:256?NI, Credentials:160?NI>>),
-    io:format("X = ~.16B~n", [X]),
-    Verifier  = crypto:mod_exp(Generator, X, Modulus),
-    PublicB   = crypto:mod_exp(Verifier * 3 + crypto:mod_exp(Generator, SecretB, Modulus), 1, Modulus),
-    {Modulus, Generator, PublicB, SecretB, Verifier, Salt}.
+challenge(A) ->
+    Credentials      = sha(A#account.name ++ ":" ++ A#account.password),
+    H = #hash{salt   = 16#33f140d46cb66e631fdbbbc9f029ad8898e05ee533876118185e56dde843674f,
+              secret = 16#8692E3A6BA48B5B1004CEF76825127B7EB7D1AEF},
+    X = sha(<<(H#hash.salt)?QQ?NI, Credentials?SH?NI>>),
+    Verifier  = crypto:mod_exp(H#hash.generator, X, H#hash.modulus),
+    Temp      = crypto:mod_exp(H#hash.generator, H#hash.secret, H#hash.modulus),
+    PublicB   = crypto:mod_exp(Verifier * 3 + Temp, 1, H#hash.modulus),
+    H#hash{public=PublicB, verifier=Verifier}.
 
-proof(PublicA, MProof1) ->
-    ok.
-
-sha(Data) ->
-    <<Result:160/big>> = crypto:sha(Data),
-    Result.
+proof(A, H, P) ->
+    U = sha(<<A?QQ?NI, (H#hash.public)?QQ?NI>>),
+    S1 = crypto:mod_exp(H#hash.verifier, U, H#hash.modulus),
+    S2 = crypto:mod_exp(S1 * A, H#hash.secret, H#hash.modulus),
+    T0  = binary_to_list(<<S2?QQ?IN>>),
+    T1  = binary_to_list(<<(sha(even(T0)))?SH?NI>>),
+    T2  = binary_to_list(<<(sha(odd(T0)))?SH?NI>>),
+    SK  = merge(T1, T2),
+    io:format("S: ~p~n", [SK]), 
+    S   = sha(<<(H#hash.modulus)?QQ?NI>>),
+    X   = sha(<<(H#hash.generator)?B>>),
+    SX  = S bxor X,
+    AN  = sha(P#account.name),
+    BSH = binary_to_list(<<SX?SH?NI, AN?SH?NI, (H#hash.salt)?QQ?NI, 
+                           A?QQ?NI, (H#hash.public)?QQ?NI>>),
+    sha(BSH ++ SK).
 
 test() ->
-    User = "WCELL",
-    Pass = "RULES",
-    Credentials = list_to_binary(User ++ ":" ++ Pass),
-    Hash        = sha(Credentials),
-    io:format("C: ~.16B~n", [Hash]),
-    {N, G, PB, SB, V, S} = challenge(Hash).
+    A = 16#232fb1b88529643d95b8dce78f2750c75b2df37acba873eb31073839eda0738d,
+    P = #account{name = "TEST", password = "TEST"},
+    H = challenge(P),
+    M = proof(A, H, P),
+    io:format("~.16B~n", [M]).
+
+sha(Data) ->
+    <<Result:160?NI>> = crypto:sha(Data),
+    Result.
+
+even([X,_,Z]) ->   [X, Z];
+even([X,_]) ->     [X];
+even([_]) ->       [];
+even([X|[_|Z]]) -> [X | even(Z)].
+
+odd([_,X,_]) ->   [X];
+odd([_,X]) ->     [X];
+odd([X]) ->       [X];
+odd([_|[X|Z]]) -> [X | odd(Z)].
+
+merge([], []) ->
+    [];
+merge([H1|T1], [H2|T2]) ->
+    [H1,H2|merge(T1, T2)].

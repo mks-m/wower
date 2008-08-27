@@ -13,7 +13,6 @@
 -define(B,    :8).
 
 -include("logon_records.hrl").
--define(N, 16#894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7).
 -define(CHECK, io:format("check~n", [])).
 
 error(C) when atom(C) ->

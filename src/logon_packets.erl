@@ -39,10 +39,10 @@ receiver(Socket, Pid) ->
                 gen_tcp:send(Socket, error(error_account_missing)),
                 receiver(Socket, Pid);
             [AccountRecord] -> 
-                H = hash(AccountRecord),
+                H        = srp6:challenge(AccountRecord),
                 Response = logon_patterns:auth_reply(H),
                 gen_tcp:send(Socket, Response),
-                handshaker(Socket, Pid, H, AccountRecord);
+                proof(Socket, Pid, H, AccountRecord);
             _ ->
                 gen_tcp:send(Socket, error(error_account_missing)),
                 receiver(Socket, Pid)
@@ -54,38 +54,50 @@ receiver(Socket, Pid) ->
         close()
     end.
 
-handshaker(Socket, Pid, Hash, Account) ->
+%%
+%% proof the challenge from receiver routine
+%% back to receiver if unknown packet or wrong
+%% account / password / whatever
+%%
+proof(Socket, Pid, Hash, Account) ->
     case gen_tcp:recv(Socket, 0) of
     {ok, Data} ->
         case logon_patterns:auth_proof(Data) of
         {ok, {A, M}} ->
-            proof(A, M, Hash, Account),
-            decoder(Socket, Pid, Hash);
+            H = srp6:proof(A, Hash, Account),
+            case H#hash.session_proof of
+                M ->
+                    io:format("proof successful~n", []),
+                    handshake(Socket, Pid, H, Account);
+                _ ->
+                    receiver(Socket, Pid)
+            end;
         _ ->
             io:format("unknown packet: ~p~n", [Data]),
-            handshaker(Socket, Pid, Hash, Account)
+            receiver(Socket, Pid)
         end;
     {error, closed} ->
         close()
     end.
 
-decoder(Socket, Pid, Hash) ->
+handshake(Socket, Pid, Hash, Account) ->
     case gen_tcp:recv(Socket, 0) of
     {ok, _Data} ->
-        decoder(Socket, Pid, Hash);
+        decoder(Socket, Pid, Hash, Account);
+    {error, closed} ->
+        close()
+    end.
+
+decoder(Socket, Pid, Hash, Account) ->
+    case gen_tcp:recv(Socket, 0) of
+    {ok, _Data} ->
+        decoder(Socket, Pid, Hash, Account);
     {error, closed} ->
         close()
     end.
 
 encoder(Hash) ->
     Hash.
-
-hash(Account) ->
-    srp6:challenge(Account).
-
-proof(A, M, H, P) ->
-    M2 = srp6:proof(A, H, P),
-    io:format("M values should match~n~.16B~n~.16B~n", [M, M2]).
 
 close() ->
     io:format("  client socket closed~n", []),

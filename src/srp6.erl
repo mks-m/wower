@@ -14,13 +14,13 @@
 -define(B,    :8).
 
 challenge(A) ->
-    Credentials      = sha(A#account.name ++ ":" ++ A#account.password),
+    Credentials      = crypto:sha(A#account.name ++ ":" ++ A#account.password),
     H = #hash{salt   = random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
               secret = random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)},
-    X = sha(<<(H#hash.salt)?QQ?IN, Credentials?SH?IN>>),
-    Verifier  = crypto:mod_exp(H#hash.generator, X, H#hash.modulus),
-    Temp      = crypto:mod_exp(H#hash.generator, H#hash.secret, H#hash.modulus),
-    PublicB   = crypto:mod_exp(Verifier * 3 + Temp, 1, H#hash.modulus),
+    X                = sha(<<(H#hash.salt)?QQ?IN, Credentials?b>>),
+    Verifier         = crypto:mod_exp(H#hash.generator, X, H#hash.modulus),
+    Temp             = crypto:mod_exp(H#hash.generator, H#hash.secret, H#hash.modulus),
+    PublicB          = crypto:mod_exp(Verifier * 3 + Temp, 1, H#hash.modulus),
     H#hash{public=PublicB, verifier=Verifier}.
 
 proof(A, H, P) ->
@@ -37,7 +37,7 @@ proof(A, H, P) ->
     AN  = sha(P#account.name),
     BSH = binary_to_list(<<SX?SH?IN, AN?SH?IN, (H#hash.salt)?QQ?IN, 
                            A?QQ?IN, (H#hash.public)?QQ?IN>>),
-    sha(BSH ++ SK).
+    H#hash{session_key = SK, session_proof = sha(BSH ++ SK)}.
 
 sha(Data) ->
     <<Result:160?IN>> = crypto:sha(Data),

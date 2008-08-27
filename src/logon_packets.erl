@@ -39,9 +39,8 @@ receiver(Socket, Pid) ->
                 gen_tcp:send(Socket, error(error_account_missing)),
                 receiver(Socket, Pid);
             [AccountRecord] -> 
-                H        = srp6:challenge(AccountRecord),
-                Response = logon_patterns:auth_reply(H),
-                gen_tcp:send(Socket, Response),
+                H = srp6:challenge(AccountRecord),
+                gen_tcp:send(Socket, logon_patterns:auth_reply(H)),
                 proof(Socket, Pid, H, AccountRecord);
             _ ->
                 gen_tcp:send(Socket, error(error_account_missing)),
@@ -65,9 +64,9 @@ proof(Socket, Pid, Hash, Account) ->
         case logon_patterns:auth_proof(Data) of
         {ok, {A, M}} ->
             H = srp6:proof(A, Hash, Account),
-            case H#hash.session_proof of
+            case H#hash.client_proof of
                 M ->
-                    io:format("proof successful~n", []),
+                    gen_tcp:send(Socket, logon_patterns:auth_reproof(H)),
                     handshake(Socket, Pid, H, Account);
                 _ ->
                     receiver(Socket, Pid)
@@ -82,7 +81,8 @@ proof(Socket, Pid, Hash, Account) ->
 
 handshake(Socket, Pid, Hash, Account) ->
     case gen_tcp:recv(Socket, 0) of
-    {ok, _Data} ->
+    {ok, Data} ->
+        io:format("got next packet: ~p~n", [Data]),
         decoder(Socket, Pid, Hash, Account);
     {error, closed} ->
         close()

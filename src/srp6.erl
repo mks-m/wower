@@ -35,9 +35,10 @@ proof(A, H, P) ->
     X   = sha(<<(H#hash.generator)?B>>),
     SX  = S bxor X,
     AN  = sha(P#account.name),
-    BSH = binary_to_list(<<SX?SH?IN, AN?SH?IN, (H#hash.salt)?QQ?IN, 
-                           A?QQ?IN, (H#hash.public)?QQ?IN>>),
-    H#hash{session_key = SK, session_proof = sha(BSH ++ SK)}.
+    CP  = sha(binary_to_list(<<SX?SH?IN, AN?SH?IN, (H#hash.salt)?QQ?IN, 
+                             A?QQ?IN, (H#hash.public)?QQ?IN>>) ++ SK),
+    SP  = sha(binary_to_list(<<A?QQ?IN, CP?SH?IN>>) ++ SK),
+    H#hash{session_key = SK, client_proof = CP, session_proof = SP}.
 
 sha(Data) ->
     <<Result:160?IN>> = crypto:sha(Data),

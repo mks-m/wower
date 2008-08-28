@@ -6,6 +6,7 @@
 -define(IN, /unsigned-little-integer).
 -define(NI, /unsigned-big-integer).
 -define(b,  /bytes).
+-define(f,  /float).
 -define(QQ, :256).
 -define(SH, :160).
 -define(DQ, :128).
@@ -104,10 +105,11 @@ realmlist_request(<<16?B, _Rest?b>>) ->
 %% byte      unknown           0x10
 %% byte      terminator?       0
 realmlist_reply(Realms) ->
-    <<16?B, (lists:size(Realms))?W, (realmlist_build(Realms))?b>>.
+    <<16?B, (lists:size(Realms))?W, (realmlist_build(Realms))?b, 0?B>>.
 
 %% realmlist helper function
 realmlist_build([]) ->
-    <<>>;
-realmlist_build([Realm|Realms]) ->
-    <<Realm, (realmlist_build(Realms))?b>>.
+    <<16?B>>;
+realmlist_build([R|Realms]) ->
+    <<0?B, 0?B, 0?B, 0?Q, (R#realm.name)?b, (R#realm.address)?b, (0.0)?f, 
+      0?B, 0?B, (16#2C)?B, (realmlist_build(Realms))?b>>.

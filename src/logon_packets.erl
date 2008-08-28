@@ -67,7 +67,7 @@ proof(Socket, Pid, Hash, Account) ->
             case H#hash.client_proof of
                 M ->
                     gen_tcp:send(Socket, logon_patterns:auth_reproof(H)),
-                    handshake(Socket, Pid, H, Account);
+                    realmlist(Socket, Pid, H, Account);
                 _ ->
                     receiver(Socket, Pid)
             end;
@@ -79,18 +79,20 @@ proof(Socket, Pid, Hash, Account) ->
         close()
     end.
 
-handshake(Socket, Pid, Hash, Account) ->
-    case gen_tcp:recv(Socket, 0) of
-    {ok, Data} ->
-        io:format("got next packet: ~p~n", [Data]),
-        realmlist(Socket, Pid, Hash, Account);
-    {error, closed} ->
-        close()
-    end.
-
 realmlist(Socket, Pid, Hash, Account) ->
     case gen_tcp:recv(Socket, 0) of
-    {ok, _Data} ->
+    {ok, Data} ->
+        case logon_patterns:realmlist_request(Data) of
+        {ok} ->
+            GetRealms        = fun() -> qlc:eval(qlc:q([X || X <- mnesia:table(realm)])) end,
+            {atomic, Realms} = mnesia:transaction(GetRealms),
+            Response = logon_patterns:realmlist_reply(Realms),
+            gen_tcp:send(Socket, Response),
+            realmlist(Socket, Pid, Hash, Account);
+        _    ->
+            io:format("unknown packet: ~p~n", [Data]),
+            receiver(Socket, Pid)
+        end,
         realmlist(Socket, Pid, Hash, Account);
     {error, closed} ->
         close()

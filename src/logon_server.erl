@@ -37,10 +37,22 @@ restart() ->
 install() ->
     mnesia:delete_schema([node()]),
     mnesia:create_schema([node()]),
+    
     mnesia:create_table(account, [{attributes, record_info(fields, account)},
                                   {disc_copies, [node()]}]),
     mnesia:dirty_write(account, #account{name     = "TEST", 
                                          password = "TEST"}),
+    
+    mnesia:create_table(realm, [{attributes, record_info(fields, realm)},
+                                  {disc_copies, [node()]}]),
+    mnesia:dirty_write(realm, #realm{name       = "Test Realm", 
+                                     icon       = 0, 
+                                     lock       = 0, 
+                                     status     = 0, 
+                                     address    = "127.0.0.1:8640", 
+                                     population = 1.0, 
+                                     characters = 3, 
+                                     timezone   = 2}),
     ok.
 
 listen() ->

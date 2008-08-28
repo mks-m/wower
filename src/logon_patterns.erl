@@ -95,8 +95,8 @@ realmlist_request(<<16?B, _Rest?b>>) ->
 %%   byte      lock            1 | 0
 %%   byte      online status   1 | 0
 %%   long      realm id ?
-%%   char N    ip address
 %%   char N    realm name
+%%   char N    ip address
 %%   real      population
 %%   byte      characters
 %%   byte      timezone

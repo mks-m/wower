@@ -1,5 +1,5 @@
 -module(logon_packets).
--export([receiver/2, encoder/1]).
+-export([receiver/2]).
 
 -define(IN, /unsigned-little-integer).
 -define(NI, /unsigned-big-integer).
@@ -83,21 +83,18 @@ handshake(Socket, Pid, Hash, Account) ->
     case gen_tcp:recv(Socket, 0) of
     {ok, Data} ->
         io:format("got next packet: ~p~n", [Data]),
-        decoder(Socket, Pid, Hash, Account);
+        realmlist(Socket, Pid, Hash, Account);
     {error, closed} ->
         close()
     end.
 
-decoder(Socket, Pid, Hash, Account) ->
+realmlist(Socket, Pid, Hash, Account) ->
     case gen_tcp:recv(Socket, 0) of
     {ok, _Data} ->
-        decoder(Socket, Pid, Hash, Account);
+        realmlist(Socket, Pid, Hash, Account);
     {error, closed} ->
         close()
     end.
-
-encoder(Hash) ->
-    Hash.
 
 close() ->
     io:format("  client socket closed~n", []),

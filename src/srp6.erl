@@ -24,9 +24,9 @@ challenge(A) ->
     H#hash{public=PublicB, verifier=Verifier}.
 
 proof(A, H, P) ->
-    U = sha(<<A?QQ?IN, (H#hash.public)?QQ?IN>>),
-    S1 = crypto:mod_exp(H#hash.verifier, U, H#hash.modulus),
-    S2 = crypto:mod_exp(S1 * A, H#hash.secret, H#hash.modulus),
+    U   = sha(<<A?QQ?IN, (H#hash.public)?QQ?IN>>),
+    S1  = crypto:mod_exp(H#hash.verifier, U, H#hash.modulus),
+    S2  = crypto:mod_exp(S1 * A, H#hash.secret, H#hash.modulus),
     T0  = binary_to_list(<<S2?QQ?IN>>),
     T1  = binary_to_list(<<(sha(even(T0)))?SH?NI>>),
     T2  = binary_to_list(<<(sha(odd(T0)))?SH?NI>>),
@@ -36,7 +36,7 @@ proof(A, H, P) ->
     SX  = S bxor X,
     AN  = sha(P#account.name),
     CP  = sha(binary_to_list(<<SX?SH?IN, AN?SH?IN, (H#hash.salt)?QQ?IN, 
-                             A?QQ?IN, (H#hash.public)?QQ?IN>>) ++ SK),
+                               A?QQ?IN, (H#hash.public)?QQ?IN>>) ++ SK),
     SP  = sha(binary_to_list(<<A?QQ?IN, CP?SH?IN>>) ++ SK),
     H#hash{session_key = SK, client_proof = CP, session_proof = SP}.
 

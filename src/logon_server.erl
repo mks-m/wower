@@ -17,7 +17,7 @@ start() ->
     c:l(logon_records),
     crypto:start(),
     mnesia:start(),
-    mnesia:wait_for_tables([account], 20000),
+    mnesia:wait_for_tables([account, realm], 20000),
     install(),
     Pid = spawn(?MODULE, listen, []),
     register(?MODULE, Pid),

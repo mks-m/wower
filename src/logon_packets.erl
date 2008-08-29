@@ -1,5 +1,5 @@
 -module(logon_packets).
--export([receiver/2]).
+-export([receiver/2, list/0]).
 
 -define(IN, /unsigned-little-integer).
 -define(NI, /unsigned-big-integer).
@@ -13,6 +13,7 @@
 -define(B,    :8).
 
 -include("logon_records.hrl").
+-include("C:\\Program Files\\erl5.6.3\\lib\\stdlib-1.15.3\\include\\qlc.hrl").
 -define(CHECK, io:format("check~n", [])).
 
 error(C) when atom(C) ->
@@ -86,7 +87,8 @@ realmlist(Socket, Pid, Hash, Account) ->
         {ok} ->
             GetRealms        = fun() -> qlc:eval(qlc:q([X || X <- mnesia:table(realm)])) end,
             {atomic, Realms} = mnesia:transaction(GetRealms),
-            Response = logon_patterns:realmlist_reply(Realms),
+            Response         = logon_patterns:realmlist_reply(Realms),
+            io:format("~n~n~p~n~n", [Response]),
             gen_tcp:send(Socket, Response),
             realmlist(Socket, Pid, Hash, Account);
         _    ->
@@ -97,6 +99,10 @@ realmlist(Socket, Pid, Hash, Account) ->
     {error, closed} ->
         close()
     end.
+
+list() ->
+    GetRealms = fun() -> qlc:eval(qlc:q([X || X <- mnesia:table(realm)])) end,
+    mnesia:transaction(GetRealms).
 
 close() ->
     io:format("  client socket closed~n", []),

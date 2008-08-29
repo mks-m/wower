@@ -106,13 +106,13 @@ realmlist_request(<<16?B, _Rest?b>>) ->
 %% byte      terminator?       0
 realmlist_reply(Realms) ->
     BinaryRealms = realmlist_build(Realms),
-    <<16?B, (size(BinaryRealms) + 7)?W?IN, 0?L, (length(Realms))?W, BinaryRealms/binary, 0?B>>,
-    <<16?B, 8?W?IN, 0?L, 0?W, 16#15?B, 0?B>>.
+    <<16?B, (size(BinaryRealms) + 8)?W?IN, 0?L, (length(Realms))?W?IN, 
+      BinaryRealms/binary, 16#10?B, 0?B>>.
 
 %% realmlist helper function
 realmlist_build([]) ->
-    <<16?B>>;
+    <<>>;
 realmlist_build([R|Realms]) ->
     <<0?B, 0?B, 0?B, (list_to_binary(R#realm.name))/binary, 0?B, 
-      (list_to_binary(R#realm.address))/binary, 0?B, (0.0)?f, 
-      0?B, 0?B, 0?B, (realmlist_build(Realms))?b>>.
+      (list_to_binary(R#realm.address))/binary, 0?B, (0.0)?L?f,
+      1?B, 1?B, 16#15?B, (realmlist_build(Realms))?b>>.

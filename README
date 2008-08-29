@@ -1,3 +1,10 @@
 wower
 
 wower is Erlang implementation of World of Warcraft server emulator.
+
+== Current status ==
+
+=== Logon server ===
+
+* passing authorization
+* outputs realmlist

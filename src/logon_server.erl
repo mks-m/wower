@@ -32,7 +32,10 @@ loop(Socket, State) ->
             gen_tcp:send(Socket, Response),
             loop(Socket, NewState);
         {skip, _, NewState} ->
-            loop(Socket, NewState)
+            loop(Socket, NewState);
+        Anything ->
+            io:format("unexpected response: ~p~n", Anything),
+            loop(Socket, State)
         end;
     {error, closed} ->
         ok

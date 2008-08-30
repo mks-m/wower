@@ -29,7 +29,6 @@ error(C) ->
 
 %% auth logon request
 %%
-%% byte      cmd
 %% byte      error
 %% word      size
 %% byte 4    gamename
@@ -44,11 +43,13 @@ error(C) ->
 %% long      ip
 %% byte    L account name length
 %% char L  N account name
-auth_request(<<0?B, _Err?B, _Size?W?IN, _Game:4?b, _Major?B, 
+auth_request(<<_Err?B, _Size?W?IN, _Game:4?b, _Major?B, 
                _Middle?B, _Minor?B, _Build?W?IN, _Platform:4?b, 
                _Os:4?b, _Country:4?b, _TimeZone?L?IN, _IP:4?b, 
                _Length?B, Account:_Length?b>>) ->
-    {ok, binary_to_list(Account)}.
+    {ok, binary_to_list(Account)};
+auth_request(_) ->
+    no.
 
 %% auth logon reply
 %%
@@ -70,13 +71,12 @@ auth_reply(H) ->
 
 %% auth proof request
 %%
-%% byte      cmd
 %% i256      public ephemeral A
 %% sha1      client session proof M1
 %%  crc      some CRC hash
 %% byte      number of keys
 %% byte      unknown
-auth_proof(<<1?B, A?QQ?IN, M?SH?IN, _C?SH?IN, _N?B, _U?B>>) ->
+auth_proof(<<A?QQ?IN, M?SH?IN, _C?SH?IN, _N?B, _U?B>>) ->
     {ok, {A, M}};
 auth_proof(_) ->
     no.
@@ -95,8 +95,10 @@ auth_reproof(H) ->
 %%
 %% byte      cmd
 %% byte 5    unknown
-realmlist_request(<<16?B, _Rest?b>>) ->
-    {ok}.
+realmlist_request(<<_Rest?b>>) ->
+    {ok};
+realmlist_request(_) ->
+    no.
 
 %% realmlist reply
 %%

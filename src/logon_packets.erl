@@ -1,25 +1,15 @@
 -module(logon_packets).
 -compile(export_all).
 
--define(IN, /unsigned-little-integer).
--define(NI, /unsigned-big-integer).
--define(b,  /bytes).
--define(QQ, :256).
--define(SH, :160).
--define(DQ, :128).
--define(Q,   :64).
--define(L,   :32).
--define(W,   :16).
--define(B,    :8).
-
 -include("logon_records.hrl").
 -include_lib("stdlib/include/qlc.hrl").
--define(CHECK, io:format("check~n", [])).
 
 dispatch(Data, State) ->
-    <<Opcode?B, Rest/binary>> = Data,
+    <<Opcode:8/integer, Rest/binary>> = Data,
+    io:format("got opcode: ~p~n", [Opcode]),
     Handler = logon_opcodes:get(Opcode),
-    ?MODULE:Handler(Rest, State).
+    io:format("got handler: ~p~n", [Handler]),
+    ?MODULE:Handler(Opcode, Rest, State).
 
 %%
 %% authenticate can receive only auth_request packet
@@ -27,7 +17,7 @@ dispatch(Data, State) ->
 %% authentication hash for connection
 %% will switch to decoder if such hash generated
 %%
-authenticate(Data, State) ->
+authenticate(_Opcode, Data, State) ->
     case logon_patterns:auth_request(Data) of
     {ok, Account} ->
         case mnesia:dirty_read({account, Account}) of
@@ -39,7 +29,8 @@ authenticate(Data, State) ->
             {send, logon_patterns:error(account_missing), State}
         end;
     _ ->
-        {skip, wrong_packet(authenticate, Data), State}
+        wrong_packet(authenticate, Data),
+        {send, logon_patterns:error(account_missing), State}
     end.
 
 %%
@@ -47,7 +38,7 @@ authenticate(Data, State) ->
 %% back to receiver if unknown packet or wrong
 %% account / password / whatever
 %%
-proof(Data, State) ->
+proof(_Opcode, Data, State) ->
     case logon_patterns:auth_proof(Data) of
     {ok, {A, M}} ->
         H = srp6:proof(A, State#logon_state.hash, State#logon_state.account),
@@ -61,7 +52,7 @@ proof(Data, State) ->
         {skip, wrong_packet(proof, Data), State}
     end.
 
-realmlist(Data, #logon_state{authenticated=yes} = State) ->
+realmlist(_Opcode, Data, #logon_state{authenticated=yes} = State) ->
     case logon_patterns:realmlist_request(Data) of
     {ok} ->
         GetRealms        = fun() -> qlc:eval(qlc:q([X || X <- mnesia:table(realm)])) end,
@@ -71,8 +62,12 @@ realmlist(Data, #logon_state{authenticated=yes} = State) ->
     _    ->
         {skip, wrong_packet(realmlist, Data), State}
     end;
-realmlist(_, State) ->
+realmlist(_Opcode, _, State) ->
     {send, logon_patterns:error(acount_missing), State}.
+
+wrong_opcode(Opcode, _, State) ->
+    io:format("unimplemented opcode ~p~n", [Opcode]),
+    {skip, ok, State}.
 
 wrong_packet(Handler, Data) ->
     io:format("wrong packet for ~p :~n~p", [Handler, Data]),

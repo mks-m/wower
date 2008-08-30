@@ -14,4 +14,5 @@ error(account_freezed) -> 12.
 
 get( 0) -> authenticate;
 get( 1) -> proof;
-get(16) -> realmlist.
+get(16) -> realmlist;
+get(__) -> wrong_opcode.

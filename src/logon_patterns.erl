@@ -15,6 +15,18 @@
 -define(W,   :16).
 -define(B,    :8).
 
+%% error reply
+%%
+%% byte      cmd
+%% byte      
+error(C) when atom(C) ->
+    <<0?B, 0?B, (logon_opcodes:get(C))?B>>;
+error(C) when integer(C) ->
+    <<0?B, 0?B, C?B>>;
+error(C) ->
+    io:format("wrong errorcode: ~p~n", [C]),
+    <<0?B, 0?B, 1?B>>.
+
 %% auth logon request
 %%
 %% byte      cmd
@@ -72,6 +84,7 @@ auth_proof(_) ->
 %% auth proof reply
 %%
 %% byte      cmd
+%% byte      unk
 %% i256      server session proof M2
 %% byte 9    unknown
 %% byte      terminator?

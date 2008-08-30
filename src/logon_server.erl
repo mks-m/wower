@@ -1,8 +1,7 @@
 -module(logon_server).
 
--export([start/0, stop/0, restart/0, listen/0, accept/2, install/0]).
+-export([start/0, stop/0, restart/0, loop/1]).
 
--define(PORT, 3724).
 -define(OPTIONS, [binary, {packet, 0}, {active, false}, {reuseaddr, true}]).
 
 -include("logon_records.hrl").
@@ -19,20 +18,31 @@ start() ->
     mnesia:start(),
     mnesia:wait_for_tables([account, realm], 20000),
     install(),
-    Pid = spawn(?MODULE, listen, []),
-    register(?MODULE, Pid),
-    ok.
+    tcp_server:start(?MODULE, 3724, {?MODULE, loop}).
 
 stop() ->
-    case whereis(?MODULE) of
-        unknown -> not_running;
-        Pid -> Pid ! stop
-    end,
-    ok.
+    gen_server:call(?MODULE, stop).
 
 restart() ->
     stop(),
     start().
+
+loop(Socket) ->
+    loop(Socket, #logon_state{}).
+
+loop(Socket, State) ->
+    case gen_tcp:recv(Socket, 0) of
+        {ok, Data} ->
+            case logon_packets:dispatch(Data, State) of
+            {send, Response, NewState} ->
+                gen_tcp:send(Socket, Response),
+                loop(Socket, NewState);
+            {skip, _, NewState} ->
+                loop(Socket, NewState)
+            end;
+        {error, closed} ->
+            ok
+    end.
 
 install() ->
     mnesia:delete_schema([node()]),
@@ -54,25 +64,3 @@ install() ->
                                      characters = 3, 
                                      timezone   = 2}),
     ok.
-
-listen() ->
-    {ok, LSocket} = gen_tcp:listen(?PORT, ?OPTIONS),
-    spawn(?MODULE, accept, [LSocket, []]),
-    receive 
-        stop ->
-            io:format("stop received, closing socket~n", []), 
-            gen_tcp:close(LSocket),
-            ok
-    end.
-
-accept(LSocket, Clients) ->
-    case gen_tcp:accept(LSocket) of
-        {ok, Socket} ->
-            Client = spawn(logon_clients, new, []),
-            spawn(logon_packets, receiver, [Socket, Client]),
-            accept(LSocket, [Socket | Clients]);
-        {error, closed} ->
-            io:format("socket closed, closing clients~n", []),
-            [ gen_tcp:close(Socket) || Socket <- Clients ],
-            ok
-    end.

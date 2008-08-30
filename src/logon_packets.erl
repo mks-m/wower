@@ -1,5 +1,5 @@
 -module(logon_packets).
--export([receiver/2, list/0]).
+-compile(export_all).
 
 -define(IN, /unsigned-little-integer).
 -define(NI, /unsigned-big-integer).
@@ -14,96 +14,65 @@
 
 -include("logon_records.hrl").
 -include("C:\\Program Files\\erl5.6.3\\lib\\stdlib-1.15.3\\include\\qlc.hrl").
--define(CHECK, io:format("check~n", [])).
 
-error(C) when atom(C) ->
-    <<0?B, 0?B, (logon_opcodes:get(C))?B>>;
-error(C) when integer(C) ->
-    <<0?B, 0?B, C?B>>;
-error(C) ->
-    io:format("wrong errorcode: ~p~n", [C]),
-    <<0?B, 0?B, 1?B>>.
+dispatch(Data, State) ->
+    <<Opcode?B, Rest/binary>> = Data,
+    Handler = logon_opcodes:get(Opcode),
+    ?MODULE:Handler(Rest, State).
 
 %%
-%% receiver can receive only auth_request packet
+%% authenticate can receive only auth_request packet
 %% and will try to find account and generate 
 %% authentication hash for connection
 %% will switch to decoder if such hash generated
 %%
-receiver(Socket, Pid) ->
-    case gen_tcp:recv(Socket, 0) of
-    {ok, Data} ->
+authenticate(Data, State) ->
         case logon_patterns:auth_request(Data) of
         {ok, Account} ->
             case mnesia:dirty_read({account, Account}) of
             [] -> 
-                gen_tcp:send(Socket, error(error_account_missing)),
-                receiver(Socket, Pid);
+                {send, logon_patterns:error(error_account_missing), State};
             [AccountRecord] -> 
                 H = srp6:challenge(AccountRecord),
-                gen_tcp:send(Socket, logon_patterns:auth_reply(H)),
-                proof(Socket, Pid, H, AccountRecord);
+                NewState = State#logon_state{last_activity=authenticate, account=AccountRecord, hash=H},
+                {send, logon_patterns:auth_reply(H), NewState};
             _ ->
-                gen_tcp:send(Socket, error(error_account_missing)),
-                receiver(Socket, Pid)
+                {send, logon_patterns:error(error_account_missing), State}
             end;
         _ ->
-            receiver(Socket, Pid)
-        end;
-    {error, closed} ->
-        close()
-    end.
+            {skip, wrong_packet(authenticate, Data), State}
+        end.
 
 %%
 %% proof the challenge from receiver routine
 %% back to receiver if unknown packet or wrong
 %% account / password / whatever
 %%
-proof(Socket, Pid, Hash, Account) ->
-    case gen_tcp:recv(Socket, 0) of
-    {ok, Data} ->
+proof(Data, State) ->
         case logon_patterns:auth_proof(Data) of
         {ok, {A, M}} ->
-            H = srp6:proof(A, Hash, Account),
+            H = srp6:proof(A, State#logon_state.hash, State#logon_state.account),
             case H#hash.client_proof of
                 M ->
-                    gen_tcp:send(Socket, logon_patterns:auth_reproof(H)),
-                    realmlist(Socket, Pid, H, Account);
+                    {send, logon_patterns:auth_reproof(H), State};
                 _ ->
-                    receiver(Socket, Pid)
+                    {send, logon_patterns:error(error_account_missing), State}
             end;
         _ ->
-            io:format("unknown packet: ~p~n", [Data]),
-            receiver(Socket, Pid)
-        end;
-    {error, closed} ->
-        close()
-    end.
+            {skip, wrong_packet(proof, Data), State}
+        end.
 
-realmlist(Socket, Pid, Hash, Account) ->
-    case gen_tcp:recv(Socket, 0) of
-    {ok, Data} ->
+realmlist(Data, State) ->
         case logon_patterns:realmlist_request(Data) of
         {ok} ->
             GetRealms        = fun() -> qlc:eval(qlc:q([X || X <- mnesia:table(realm)])) end,
             {atomic, Realms} = mnesia:transaction(GetRealms),
             Response         = logon_patterns:realmlist_reply(Realms),
-            io:format("~n~n~p~n~n", [Response]),
-            gen_tcp:send(Socket, Response),
-            realmlist(Socket, Pid, Hash, Account);
+            {send, Response, State};
         _    ->
-            io:format("unknown packet: ~p~n", [Data]),
-            receiver(Socket, Pid)
-        end,
-        realmlist(Socket, Pid, Hash, Account);
-    {error, closed} ->
-        close()
-    end.
+            {skip, wrong_packet(realmlist, Data), State}
+        end.
 
-list() ->
-    GetRealms = fun() -> qlc:eval(qlc:q([X || X <- mnesia:table(realm)])) end,
-    mnesia:transaction(GetRealms).
-
-close() ->
-    io:format("  client socket closed~n", []),
+wrong_packet(Handler, Data) ->
+    io:format("wrong packet for ~p :~n~p", [Handler, Data]),
     ok.

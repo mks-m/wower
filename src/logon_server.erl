@@ -1,6 +1,6 @@
 -module(logon_server).
 
--export([start/0, stop/0, restart/0, listen/0, accept/2, install/0]).
+-export([start/0, start/1, load/0, compile/0, stop/0, restart/1, listen/0, accept/2, install/0]).
 
 -define(PORT, 3724).
 -define(OPTIONS, [binary, {packet, 0}, {active, false}, {reuseaddr, true}]).
@@ -8,17 +8,10 @@
 -include("logon_records.hrl").
 
 start() ->
-    c:l(srp6),
-    c:l(logon_server),
-    c:l(logon_clients),
-    c:l(logon_opcodes),
-    c:l(logon_packets),
-    c:l(logon_patterns),
-    c:l(logon_records),
     crypto:start(),
-    mnesia:start(),
-    mnesia:wait_for_tables([account, realm], 20000),
     install(),
+    mnesia:start(),
+    mnesia:wait_for_tables([account, realm], 1000),
     Pid = spawn(?MODULE, listen, []),
     register(?MODULE, Pid),
     ok.
@@ -30,18 +23,22 @@ stop() ->
     end,
     ok.
 
-restart() ->
+restart(Method) ->
     stop(),
+    ?MODULE:Method(),
     start().
 
 install() ->
     mnesia:delete_schema([node()]),
     mnesia:create_schema([node()]),
+    mnesia:start(),
     
     mnesia:create_table(account, [{attributes, record_info(fields, account)},
                                   {disc_copies, [node()]}]),
     mnesia:dirty_write(account, #account{name     = "TEST", 
                                          password = "TEST"}),
+
+    mnesia:wait_for_tables([account, realm], 1000),
     
     mnesia:create_table(realm, [{attributes, record_info(fields, realm)},
                                   {disc_copies, [node()]}]),
@@ -53,6 +50,7 @@ install() ->
                                      population = 1.0, 
                                      characters = 3, 
                                      timezone   = 2}),
+    mnesia:stop(),
     ok.
 
 listen() ->
@@ -76,3 +74,23 @@ accept(LSocket, Clients) ->
             [ gen_tcp:close(Socket) || Socket <- Clients ],
             ok
     end.
+
+start(Method) ->
+    ?MODULE:Method(),
+    start().
+
+load() ->
+    c:l(srp6),
+    c:l(logon_server),
+    c:l(logon_clients),
+    c:l(logon_opcodes),
+    c:l(logon_packets),
+    c:l(logon_patterns).
+
+compile() ->
+    c:c(srp6),
+    c:c(logon_server),
+    c:c(logon_clients),
+    c:c(logon_opcodes),
+    c:c(logon_packets),
+    c:c(logon_patterns).

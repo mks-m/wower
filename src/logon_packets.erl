@@ -13,7 +13,8 @@
 -define(B,    :8).
 
 -include("logon_records.hrl").
--include("C:\\Program Files\\erl5.6.3\\lib\\stdlib-1.15.3\\include\\qlc.hrl").
+-include_lib("stdlib/include/qlc.hrl").
+-define(CHECK, io:format("check~n", [])).
 
 dispatch(Data, State) ->
     <<Opcode?B, Rest/binary>> = Data,

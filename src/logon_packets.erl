@@ -28,21 +28,19 @@ dispatch(Data, State) ->
 %% will switch to decoder if such hash generated
 %%
 authenticate(Data, State) ->
-        case logon_patterns:auth_request(Data) of
-        {ok, Account} ->
-            case mnesia:dirty_read({account, Account}) of
-            [] -> 
-                {send, logon_patterns:error(error_account_missing), State};
-            [AccountRecord] -> 
-                H = srp6:challenge(AccountRecord),
-                NewState = State#logon_state{last_activity=authenticate, account=AccountRecord, hash=H},
-                {send, logon_patterns:auth_reply(H), NewState};
-            _ ->
-                {send, logon_patterns:error(error_account_missing), State}
-            end;
+    case logon_patterns:auth_request(Data) of
+    {ok, Account} ->
+        case mnesia:dirty_read({account, Account}) of
+        [AccountRecord] -> 
+            H = srp6:challenge(AccountRecord),
+            NewState = State#logon_state{authenticated=no, account=AccountRecord, hash=H},
+            {send, logon_patterns:auth_reply(H), NewState};
         _ ->
-            {skip, wrong_packet(authenticate, Data), State}
-        end.
+            {send, logon_patterns:error(account_missing), State}
+        end;
+    _ ->
+        {skip, wrong_packet(authenticate, Data), State}
+    end.
 
 %%
 %% proof the challenge from receiver routine
@@ -50,29 +48,31 @@ authenticate(Data, State) ->
 %% account / password / whatever
 %%
 proof(Data, State) ->
-        case logon_patterns:auth_proof(Data) of
-        {ok, {A, M}} ->
-            H = srp6:proof(A, State#logon_state.hash, State#logon_state.account),
-            case H#hash.client_proof of
-                M ->
-                    {send, logon_patterns:auth_reproof(H), State};
-                _ ->
-                    {send, logon_patterns:error(error_account_missing), State}
-            end;
+    case logon_patterns:auth_proof(Data) of
+    {ok, {A, M}} ->
+        H = srp6:proof(A, State#logon_state.hash, State#logon_state.account),
+        case H#hash.client_proof of
+        M ->
+            {send, logon_patterns:auth_reproof(H), State#logon_state{authenticated=yes}};
         _ ->
-            {skip, wrong_packet(proof, Data), State}
-        end.
+            {send, logon_patterns:error(account_missing), State}
+        end;
+    _ ->
+        {skip, wrong_packet(proof, Data), State}
+    end.
 
+realmlist(Data, State#logon_state{authenticated=yes}) ->
+    case logon_patterns:realmlist_request(Data) of
+    {ok} ->
+        GetRealms        = fun() -> qlc:eval(qlc:q([X || X <- mnesia:table(realm)])) end,
+        {atomic, Realms} = mnesia:transaction(GetRealms),
+        Response         = logon_patterns:realmlist_reply(Realms),
+        {send, Response, State};
+    _    ->
+        {skip, wrong_packet(realmlist, Data), State}
+    end;
 realmlist(Data, State) ->
-        case logon_patterns:realmlist_request(Data) of
-        {ok} ->
-            GetRealms        = fun() -> qlc:eval(qlc:q([X || X <- mnesia:table(realm)])) end,
-            {atomic, Realms} = mnesia:transaction(GetRealms),
-            Response         = logon_patterns:realmlist_reply(Realms),
-            {send, Response, State};
-        _    ->
-            {skip, wrong_packet(realmlist, Data), State}
-        end.
+    {send, logon_patterns:error(acount_missing), State}.
 
 wrong_packet(Handler, Data) ->
     io:format("wrong packet for ~p :~n~p", [Handler, Data]),

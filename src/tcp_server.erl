@@ -1,4 +1,4 @@
--module(socket_server).
+-module(tcp_server).
 -author('Jesse E.I. Farmer <jesse@20bits.com>').
 -behavior(gen_server).
 

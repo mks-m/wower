@@ -61,7 +61,7 @@ proof(Data, State) ->
         {skip, wrong_packet(proof, Data), State}
     end.
 
-realmlist(Data, State#logon_state{authenticated=yes}) ->
+realmlist(Data, #logon_state{authenticated=yes} = State) ->
     case logon_patterns:realmlist_request(Data) of
     {ok} ->
         GetRealms        = fun() -> qlc:eval(qlc:q([X || X <- mnesia:table(realm)])) end,
@@ -71,7 +71,7 @@ realmlist(Data, State#logon_state{authenticated=yes}) ->
     _    ->
         {skip, wrong_packet(realmlist, Data), State}
     end;
-realmlist(Data, State) ->
+realmlist(_, State) ->
     {send, logon_patterns:error(acount_missing), State}.
 
 wrong_packet(Handler, Data) ->

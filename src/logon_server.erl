@@ -26,16 +26,16 @@ loop(Socket) ->
 
 loop(Socket, State) ->
     case gen_tcp:recv(Socket, 0) of
-        {ok, Data} ->
-            case logon_packets:dispatch(Data, State) of
-            {send, Response, NewState} ->
-                gen_tcp:send(Socket, Response),
-                loop(Socket, NewState);
-            {skip, _, NewState} ->
-                loop(Socket, NewState)
-            end;
-        {error, closed} ->
-            ok
+    {ok, Data} ->
+        case logon_packets:dispatch(Data, State) of
+        {send, Response, NewState} ->
+            gen_tcp:send(Socket, Response),
+            loop(Socket, NewState);
+        {skip, _, NewState} ->
+            loop(Socket, NewState)
+        end;
+    {error, closed} ->
+        ok
     end.
 
 install() ->
@@ -62,28 +62,6 @@ install() ->
                                      timezone   = 2}),
     mnesia:stop(),
     ok.
-
-listen() ->
-    {ok, LSocket} = gen_tcp:listen(?PORT, ?OPTIONS),
-    spawn(?MODULE, accept, [LSocket, []]),
-    receive 
-        stop ->
-            io:format("stop received, closing socket~n", []), 
-            gen_tcp:close(LSocket),
-            ok
-    end.
-
-accept(LSocket, Clients) ->
-    case gen_tcp:accept(LSocket) of
-        {ok, Socket} ->
-            Client = spawn(logon_clients, new, []),
-            spawn(logon_packets, receiver, [Socket, Client]),
-            accept(LSocket, [Socket | Clients]);
-        {error, closed} ->
-            io:format("socket closed, closing clients~n", []),
-            [ gen_tcp:close(Socket) || Socket <- Clients ],
-            ok
-    end.
 
 start(Method) ->
     ?MODULE:Method(),

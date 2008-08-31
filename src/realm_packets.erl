@@ -4,14 +4,15 @@
 -include("realm_records.hrl").
 
 dispatch(Data, State) ->
-    <<_:16, Opcode:16/integer-little, Rest/binary>> = Data,
+    <<_:16, Opcode:32/integer-little, Rest/binary>> = Data,
     io:format("got opcode: ~p~n", [Opcode]),
     Handler = realm_opcodes:h(Opcode),
     io:format("handling: ~p~n", [Handler]),
     ?MODULE:Handler(Opcode, Rest, State).
 
-cmsg_auth_session(Opcode, Rest, Data) ->
-    ok.
+cmsg_auth_session(_Opcode, Rest, _State) ->
+    {B, A, K} = realm_patterns:cmsg_auth_session(Rest),
+    io:format("client build: ~p~naccount name: ~p~nsession key: ~p~n", [B, A, K]).
 
 wrong_opcode(Opcode, _, State) ->
     io:format("unimplemented opcode ~p~n", [Opcode]),

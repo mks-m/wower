@@ -23,3 +23,14 @@ smsg_auth_challenge(Seed) ->
     Opcode = realm_opcodes:c(smsg_auth_challenge),
     Packet = <<Opcode?L?IN, Seed?L?IN, 0?B>>,
     <<(size(Packet))?W, Packet/binary>>.
+
+cmsg_auth_session(<<Build?L?IN, _Unk?L, Rest/binary>>) ->
+    {Account, Key} = cmsg_auth_session_extract(Rest, ""),
+    {Build, Account, Key};
+cmsg_auth_session(_) ->
+    no.
+
+cmsg_auth_session_extract(<<0?B, Rest/binary>>, Account) ->
+    {Account, Rest};
+cmsg_auth_session_extract(<<Letter?B, Rest/binary>>, Account) ->
+    cmsg_auth_session_extract(Rest, Account ++ [Letter]).

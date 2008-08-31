@@ -1,14 +1,10 @@
 -module(logon_server).
-
--export([start/0, start/1, load/0, compile/0, stop/0, restart/1, loop/1]).
-
--define(OPTIONS, [binary, {packet, 0}, {active, false}, {reuseaddr, true}]).
+-export([start/0, start/1, load/0, compile/0, stop/0, restart/1, loop/1, install/0]).
 
 -include("logon_records.hrl").
 
 start() ->
     crypto:start(),
-    install(),
     mnesia:start(),
     mnesia:wait_for_tables([account, realm], 1000),
     tcp_server:start(?MODULE, 3724, {?MODULE, loop}).
@@ -25,7 +21,7 @@ loop(Socket) ->
     loop(Socket, #logon_state{}).
 
 loop(Socket, State) ->
-    case gen_tcp:recv(Socket, 0) of
+    try gen_tcp:recv(Socket, 0) of
     {ok, Data} ->
         case logon_packets:dispatch(Data, State) of
         {send, Response, NewState} ->
@@ -38,6 +34,9 @@ loop(Socket, State) ->
             loop(Socket, State)
         end;
     {error, closed} ->
+        ok
+    catch
+    _ -> 
         ok
     end.
 

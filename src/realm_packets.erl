@@ -6,8 +6,9 @@
 
 dispatch(Data, State) ->
     <<Opcode:8/integer, Rest/binary>> = Data,
+    io:format("got opcode: ~p~n", [Opcode]),
     Handler = logon_opcodes:get(Opcode),
-    io:format("handling ~p~n", [Handler]),
+    io:format("got handler: ~p~n", [Handler]),
     ?MODULE:Handler(Opcode, Rest, State).
 
 %%
@@ -16,24 +17,20 @@ dispatch(Data, State) ->
 %% authentication hash for connection
 %% will switch to decoder if such hash generated
 %%
-authenticate(Opcode, Data, State) ->
+authenticate(_Opcode, Data, State) ->
     case logon_patterns:auth_request(Data) of
     {ok, Account} ->
-        try mnesia:dirty_read({account, Account}) of
+        case mnesia:dirty_read({account, Account}) of
         [AccountRecord] -> 
             H = srp6:challenge(AccountRecord),
             NewState = State#logon_state{authenticated=no, account=AccountRecord, hash=H},
             {send, logon_patterns:auth_reply(H), NewState};
         _ ->
-            {send, logon_patterns:error(Opcode, account_missing), State}
-        catch
-        Error ->
-            wrong_code(Error),
-            {send, logon_patterns:error(Opcode, account_missing), State}
+            {send, logon_patterns:error(account_missing), State}
         end;
     _ ->
         wrong_packet(authenticate, Data),
-        {send, logon_patterns:error(Opcode, account_missing), State}
+        {send, logon_patterns:error(account_missing), State}
     end.
 
 %%
@@ -41,19 +38,15 @@ authenticate(Opcode, Data, State) ->
 %% back to receiver if unknown packet or wrong
 %% account / password / whatever
 %%
-proof(Opcode, Data, State) ->
+proof(_Opcode, Data, State) ->
     case logon_patterns:auth_proof(Data) of
     {ok, {A, M}} ->
         H = srp6:proof(A, State#logon_state.hash, State#logon_state.account),
-        try H#hash.client_proof of
+        case H#hash.client_proof of
         M ->
             {send, logon_patterns:auth_reproof(H), State#logon_state{authenticated=yes}};
         _ ->
-            {send, logon_patterns:error(Opcode, account_missing), State}
-        catch
-        Error ->
-            wrong_code(Error),
-            {send, logon_patterns:error(Opcode, account_missing), State}
+            {send, logon_patterns:error(account_missing), State}
         end;
     _ ->
         {skip, wrong_packet(proof, Data), State}
@@ -69,15 +62,13 @@ realmlist(_Opcode, Data, #logon_state{authenticated=yes} = State) ->
     _    ->
         {skip, wrong_packet(realmlist, Data), State}
     end;
-realmlist(Opcode, _, State) ->
-    {send, logon_patterns:error(Opcode, acount_missing), State}.
+realmlist(_Opcode, _, State) ->
+    {send, logon_patterns:error(acount_missing), State}.
 
 wrong_opcode(Opcode, _, State) ->
     io:format("unimplemented opcode ~p~n", [Opcode]),
     {skip, ok, State}.
 
 wrong_packet(Handler, Data) ->
-    io:format("wrong packet for ~p :~n~p", [Handler, Data]).
-
-wrong_code(Error) ->
-    io:format("got error: ~p~n", [Error]).
+    io:format("wrong packet for ~p :~n~p", [Handler, Data]),
+    ok.

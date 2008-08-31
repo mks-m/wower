@@ -18,14 +18,16 @@
 %% error reply
 %%
 %% byte      cmd
-%% byte      
-error(C) when atom(C) ->
-    <<0?B, 0?B, (logon_opcodes:get(C))?B>>;
-error(C) when integer(C) ->
-    <<0?B, 0?B, C?B>>;
-error(C) ->
-    io:format("wrong errorcode: ~p~n", [C]),
-    <<0?B, 0?B, 1?B>>.
+%% byte      unk             0
+%% byte      error
+%% byte      terminator      0
+error(Opcode, Error) when atom(Error) ->
+    <<Opcode?B, 0?B, (logon_opcodes:error(Error))?B, 0?B>>;
+error(Opcode, Error) when integer(Error) ->
+    <<Opcode?B, 0?B, Error?B, 0?B>>;
+error(Opcode, Error) ->
+    io:format("wrong error code: ~p~n", [Error]),
+    <<Opcode?B, 0?B, 1?B, 0?B>>.
 
 %% auth logon request
 %%

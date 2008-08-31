@@ -71,16 +71,12 @@ start(Method) ->
 
 load() ->
     c:l(srp6),
-    c:l(logon_server),
-    c:l(logon_clients),
     c:l(logon_opcodes),
     c:l(logon_packets),
     c:l(logon_patterns).
 
 compile() ->
     c:c(srp6),
-    c:c(logon_server),
-    c:c(logon_clients),
     c:c(logon_opcodes),
     c:c(logon_packets),
     c:c(logon_patterns).

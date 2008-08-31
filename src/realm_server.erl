@@ -18,9 +18,10 @@ restart(Method) ->
     start().
 
 loop(Socket) ->
-    Packet = logon_patterns:smsg_auth_challenge(random:uniform(16#FFFFFFFF)),
+    Seed   = random:uniform(16#FFFFFFFF),
+    Packet = realm_patterns:smsg_auth_challenge(Seed),
     gen_tcp:send(Socket, Packet),
-    loop(Socket, #realm_state{}).
+    loop(Socket, #client_state{}).
 
 loop(Socket, State) ->
     case gen_tcp:recv(Socket, 0) of
@@ -45,8 +46,12 @@ start(Method) ->
 
 load() ->
     c:l(srp6),
-    c:l(realm_server).
+    c:l(realm_opcodes),
+    c:l(realm_patterns),
+    c:l(realm_packets).
 
 compile() ->
     c:c(srp6),
-    c:c(realm_server).
+    c:c(realm_opcodes),
+    c:c(realm_patterns),
+    c:c(realm_packets).

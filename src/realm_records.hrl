@@ -1,1 +1,1 @@
--record(realm_state, {clients=[]}).
+-record(client_state, {clients=[]}).

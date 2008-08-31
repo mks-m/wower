@@ -6,5 +6,10 @@ wower is Erlang implementation of World of Warcraft server emulator.
 
 === Logon server ===
 
-* passing authorization
-* outputs realmlist
+Allows you to connect and select realm.
+Does not support reconnect after wrong password.
+Does not support patching.
+
+=== Realm server ===
+
+Accepts connections. Stucks client on "Connected" message.

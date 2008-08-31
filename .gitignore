@@ -3,3 +3,4 @@ ebin/*
 .settings
 *.beam
 Mnesia*
+nbproject

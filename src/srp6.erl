@@ -27,34 +27,34 @@ proof(A, H, P) ->
     U   = sha(<<A?QQ?IN, (H#hash.public)?QQ?IN>>),
     S1  = crypto:mod_exp(H#hash.verifier, U, H#hash.modulus),
     S2  = crypto:mod_exp(S1 * A, H#hash.secret, H#hash.modulus),
-    T0  = binary_to_list(<<S2?QQ?IN>>),
-    T1  = binary_to_list(<<(sha(even(T0)))?SH?NI>>),
-    T2  = binary_to_list(<<(sha(odd(T0)))?SH?NI>>),
-    SK  = lists:reverse(merge(T1, T2)),
+    T0  = <<S2?QQ?IN>>,
+    T1  = <<(sha(even(T0)))?SH?NI>>,
+    T2  = <<(sha(odd(T0)))?SH?NI>>,
+    SK  = merge(T1, T2),
     S   = sha(<<(H#hash.modulus)?QQ?IN>>),
     X   = sha(<<(H#hash.generator)?B>>),
     SX  = S bxor X,
     AN  = sha(P#account.name),
-    CP  = sha(binary_to_list(<<SX?SH?IN, AN?SH?IN, (H#hash.salt)?QQ?IN, 
-                               A?QQ?IN, (H#hash.public)?QQ?IN>>) ++ SK),
-    SP  = sha(binary_to_list(<<A?QQ?IN, CP?SH?IN>>) ++ SK),
+    CP  = sha(<<SX?SH?IN, AN?SH?IN, (H#hash.salt)?QQ?IN, 
+                A?QQ?IN, (H#hash.public)?QQ?IN, SK/binary>>),
+    SP  = sha(<<A?QQ?IN, CP?SH?IN, SK/binary>>),
     H#hash{session_key = SK, client_proof = CP, session_proof = SP}.
 
 sha(Data) ->
     <<Result:160?IN>> = crypto:sha(Data),
     Result.
 
-even([X,_,Z]) ->   [X, Z];
-even([X,_]) ->     [X];
-even([_]) ->       [];
-even([X|[_|Z]]) -> [X | even(Z)].
+even(<<X:8,_:8,Z:8>>) ->      <<X:8, Z:8>>;
+even(<<X:8,_:8>>) ->          <<X:8>>;
+even(<<_:8>>) ->              <<>>;
+even(<<X:8,_:8,Z/binary>>) -> <<X:8, (even(Z))/binary>>.
 
-odd([_,X,_]) ->   [X];
-odd([_,X]) ->     [X];
-odd([X]) ->       [X];
-odd([_|[X|Z]]) -> [X | odd(Z)].
+odd(<<_:8,X:8,_:8>>) ->      <<X>>;
+odd(<<_:8,X:8>>) ->          <<X>>;
+odd(<<X:8>>) ->              <<X>>;
+odd(<<_:8,X:8,Z/binary>>) -> <<X:8, (odd(Z))/binary>>.
 
-merge([], []) ->
-    [];
-merge([H1|T1], [H2|T2]) ->
-    [H2,H1|merge(T1, T2)].
+merge(<<>>, <<>>) ->
+    <<>>;
+merge(<<H1:8, T1/binary>>, <<H2:8, T2/binary>>) ->
+    <<(merge(T1, T2))/binary, H1:8, H2:8>>.

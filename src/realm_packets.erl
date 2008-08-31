@@ -10,9 +10,10 @@ dispatch(Data, State) ->
     io:format("handling: ~p~n", [Handler]),
     ?MODULE:Handler(Opcode, Rest, State).
 
-cmsg_auth_session(_Opcode, Rest, _State) ->
+cmsg_auth_session(_Opcode, Rest, State) ->
     {B, A, K} = realm_patterns:cmsg_auth_session(Rest),
-    io:format("client build: ~p~naccount name: ~p~nsession key: ~p~n", [B, A, K]).
+    io:format("client build: ~p~naccount name: ~p~nsession key: ~p~n", [B, A, K]),
+    {send, realm_patterns:smsg_auth_response(), State}.
 
 wrong_opcode(Opcode, _, State) ->
     io:format("unimplemented opcode ~p~n", [Opcode]),

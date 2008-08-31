@@ -1,11 +1,14 @@
--module(logon_packets).
+-module(realm_packets).
 -compile(export_all).
 
 -include("realm_records.hrl").
 
 dispatch(Data, State) ->
-    <<Opcode:8/integer, Rest/binary>> = Data,
-    Handler = logon_opcodes:get(Opcode),
+    io:format("got data: ~p~n", [Data]),
+    <<Opcode:32/integer, Rest/binary>> = Data,
+    io:format("got opcode: ~p~n", [Opcode]),
+    Handler = realm_opcodes:get(Opcode),
+    io:format("handling: ~p~n", [Handler]),
     ?MODULE:Handler(Opcode, Rest, State).
 
 wrong_opcode(Opcode, _, State) ->

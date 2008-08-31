@@ -1,4 +1,4 @@
--module(logon_server).
+-module(realm_server).
 -export([start/0, start/1, load/0, compile/0, stop/0, restart/1, loop/1]).
 
 -include("realm_records.hrl").
@@ -43,8 +43,8 @@ start(Method) ->
 
 load() ->
     c:l(srp6),
-    c:l(logon_server).
+    c:l(realm_server).
 
 compile() ->
     c:c(srp6),
-    c:c(logon_server).
+    c:c(realm_server).

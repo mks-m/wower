@@ -18,6 +18,8 @@ restart(Method) ->
     start().
 
 loop(Socket) ->
+    Packet = logon_patterns:smsg_auth_challenge(random:uniform(16#FFFFFFFF)),
+    gen_tcp:send(Socket, Packet),
     loop(Socket, #realm_state{}).
 
 loop(Socket, State) ->

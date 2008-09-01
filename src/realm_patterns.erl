@@ -21,7 +21,7 @@
 %% byte      terminator
 smsg_auth_challenge(Seed) ->
     Opcode = realm_opcodes:c(smsg_auth_challenge),
-    <<7?W, Opcode?W?IN, Seed?L?IN, 0?B>>.
+    <<8?W, Opcode?L?IN, Seed?L?IN, 0?B>>.
 
 %% auth session
 %%

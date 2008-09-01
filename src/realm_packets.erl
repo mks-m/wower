@@ -35,8 +35,18 @@ wrong_packet(Handler, Data) ->
 wrong_code(Error) ->
     io:format("got error: ~p~n", [Error]).
 
-encrypt(Data, Key) ->
-    ok.
+encrypt(Header, Key) ->
+    encrypt(Header, Key, <<>>).
+encrypt(<<>>, Key, Result) -> {Result, Key};
+encrypt(<<OldByte:8, Header/binary>>, #crypt_state{si = SI, sj = SJ, key = K}, Result) ->
+    NewByte = lists:nth(SJ, K) bxor OldByte + SI,
+    NewSJ   = (SJ + 1) rem erlang:length(K),
+    encrypt(Header, #crypt_state{si  = NewByte, sj  = NewSJ, key = K}, <<Result/binary, NewByte:8>>).
 
 decrypt(Header, Key) ->
-    ok.
+    decrypt(Header, Key, <<>>).
+decrypt(<<>>, Key, Result) -> {Result, Key};
+decrypt(<<OldByte:8, Header/binary>>, #crypt_state{ri = RI, rj = RJ, key = K}, Result) ->
+    NewByte = lists:nth(RJ, K) bxor (OldByte - RI),
+    NewRJ   = (RJ + 1) rem erlang:length(K),
+    encrypt(Header, #crypt_state{ri  = OldByte, rj  = NewRJ, key = K}, <<Result/binary, NewByte:8>>).

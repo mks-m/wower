@@ -21,7 +21,7 @@
 %% byte      terminator
 smsg_auth_challenge(Seed) ->
     Opcode = realm_opcodes:c(smsg_auth_challenge),
-    response(Opcode, <<Seed?L?IN>>).
+    <<7?W, Opcode?W?IN, Seed?L?IN, 0?B>>.
 
 %% auth session
 %%
@@ -47,4 +47,4 @@ cmsg_auth_session_extract(<<Letter?B, Rest/binary>>, Account) ->
     cmsg_auth_session_extract(Rest, Account ++ [Letter]).
 
 response(Opcode, Packet) ->
-    <<(size(Packet)+3)?W, Opcode?L?IN, Packet/binary, 0?B>>.
+    {<<(size(Packet)+3)?W, Opcode?W?IN>>, <<Packet/binary, 0?B>>}.

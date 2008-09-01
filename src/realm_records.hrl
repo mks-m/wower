@@ -1,1 +1,2 @@
 -record(client_state, {key=null, account=null}).
+-record(crypt_state, {si, sj, ri, rj, key}).

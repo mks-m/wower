@@ -1,1 +1,1 @@
--record(client_state, {clients=[]}).
+-record(client_state, {key=null, account=null}).

@@ -38,13 +38,13 @@ cmsg_auth_session(_) ->
 smsg_auth_response() ->
     Opcode = realm_opcodes:c(smsg_auth_response),
     Error  = realm_opcodes:e(auth_ok),
-    Packet = <<Error, 0?L, 2?B, 0?L, 1?B>>,
+    Packet = <<Error?W?IN, 0?L, 2?B, 0?L, 1?B>>,
     response(Opcode, Packet).
 
-cmsg_auth_session_extract(<<0?B, Rest/binary>>, Account) ->
-    {Account, Rest};
+cmsg_auth_session_extract(<<0?B, Rest/bytes>>, Account) ->
+    {Account, binary_to_list(Rest)};
 cmsg_auth_session_extract(<<Letter?B, Rest/binary>>, Account) ->
     cmsg_auth_session_extract(Rest, Account ++ [Letter]).
 
 response(Opcode, Packet) ->
-    {<<(size(Packet)+3)?W, Opcode?W?IN>>, <<Packet/binary, 0?B>>}.
+    {<<(size(Packet)+2)?W, Opcode?W?IN>>, <<Packet/binary, 0?B>>}.

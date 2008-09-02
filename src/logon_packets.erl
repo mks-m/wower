@@ -47,6 +47,9 @@ proof(Opcode, Data, State) ->
         H = srp6:proof(A, State#logon_state.hash, State#logon_state.account),
         try H#hash.client_proof of
         M ->
+            %% client accepted and authenticated, we must store his session key for
+            %% later realm_server authentication
+            ets:insert(connected_clients, {State#logon_state.account, H#hash.session_key}),
             {send, logon_patterns:auth_reproof(H), State#logon_state{authenticated=yes}};
         _ ->
             {send, logon_patterns:error(Opcode, account_missing), State}

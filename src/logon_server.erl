@@ -6,6 +6,7 @@
 start() ->
     crypto:start(),
     mnesia:start(),
+    ets:new(connected_clients, [named_table, set, public]),
     mnesia:wait_for_tables([account, realm], 1000),
     tcp_server:start(?MODULE, 3724, {?MODULE, loop}).
 

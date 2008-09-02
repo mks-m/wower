@@ -13,3 +13,4 @@ Does not support patching.
 === Realm server ===
 
 Accepts connections. Stucks client on "Connected" message.
+Packet encryption/decryption implemented.

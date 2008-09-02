@@ -28,4 +28,4 @@ encryption_key(A) ->
     Chu1 = 16#36363636363636363636363636363636,
     Chu2 = 16#5C5C5C5C5C5C5C5C5C5C5C5C5C5C5C5C,
     Sha1 = crypto:sha(<<(Seed bxor Chu1):128?IB, Chu1:128, Chu1:128, Chu1:128, K/binary>>),
-    crypto:sha(<<(Seed bxor Chu2):128?IB, Chu2:128, Chu2:128, Chu2:128, Sha1/binary>>).
+    binary_to_list(crypto:sha(<<(Seed bxor Chu2):128?IB, Chu2:128, Chu2:128, Chu2:128, Sha1/binary>>)).

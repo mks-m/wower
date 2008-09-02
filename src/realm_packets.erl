@@ -20,7 +20,7 @@ cmsg_auth_session(_Opcode, Rest, State) ->
     {_, A, _}      = realm_patterns:cmsg_auth_session(Rest),
     {Header, Data} = realm_patterns:smsg_auth_response(),
     io:format("header: ~p~ndata: ~p~n", [Header, Data]),
-    K = realm_crypto:encryption_key(A),
+    K      = realm_crypto:encryption_key(A),
     Crypt  = #crypt_state{si=0, sj=0, ri=0, rj=0, key=K},
     try realm_crypto:encrypt(Header, Crypt) of
     {H, C} ->

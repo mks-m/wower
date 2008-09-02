@@ -38,7 +38,7 @@ cmsg_auth_session(_) ->
 smsg_auth_response() ->
     Opcode = realm_opcodes:c(smsg_auth_response),
     Error  = realm_opcodes:e(auth_ok),
-    Packet = <<Error?W?IN, 0?L, 2?B, 0?L, 1?B>>,
+    Packet = <<Error?B, 0?L, 2?B, 0?L, 1?B>>,
     response(Opcode, Packet).
 
 cmsg_auth_session_extract(<<0?B, Rest/bytes>>, Account) ->

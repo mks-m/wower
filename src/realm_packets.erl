@@ -24,8 +24,6 @@ cmsg_auth_session(_Opcode, Rest, State) ->
     Crypt  = #crypt_state{si=0, sj=0, ri=0, rj=0, key=K},
     try realm_crypto:encrypt(Header, Crypt) of
     {H, C} ->
-        {D, _} = realm_crypto:decrypt(<<1,2,3,4,5,6>>, C),
-        io:format("encrypted header: ~p~ndecrypted header: ~p~n", [H, D]),
         {send, <<H/binary, Data/binary>>, State#client_state{key=C, account=A}}
     catch
     T:E ->

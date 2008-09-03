@@ -26,9 +26,4 @@ encryption_key(A) ->
     [{_, K}] = ets:lookup(connected_clients, A),
     io:format("logon server key: ~p~n", [K]),
     Seed = 16#38A78315F8922530719867B18C04E2AA,
-    Chu1 = 16#36363636363636363636363636363636,
-    Chu2 = 16#5C5C5C5C5C5C5C5C5C5C5C5C5C5C5C5C,
-    Sha1 = crypto:sha(<<(Seed bxor Chu1):128?IL, Chu1:128, Chu1:128, Chu1:128, K/binary>>),
-    Sha2 = binary_to_list(crypto:sha(<<(Seed bxor Chu2):128?IL, Chu2:128, Chu2:128, Chu2:128, Sha1/binary>>)),
-    io:format("realm server key: ~p~n", [Sha2]),
-    Sha2.
+    binary_to_list(crypto:sha_mac(<<Seed:128?IB>>, K)).

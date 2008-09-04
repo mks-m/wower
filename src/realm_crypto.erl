@@ -10,7 +10,7 @@ encrypt(Header, Key) ->
     encrypt(Header, Key, <<>>).
 encrypt(<<>>, Key, Result) -> {Result, Key};
 encrypt(<<OldByte:8?I, Header/binary>>, #crypt_state{si = SI, sj = SJ, key = K} = C, Result) ->
-    NewSJ = (lists:nth(SI+1, K) bxor OldByte) + SJ,
+    NewSJ = ((lists:nth(SI+1, K) bxor OldByte) + SJ) band 255,
     NewSI = (SI+1) rem ?K,
     encrypt(Header, C#crypt_state{si  = NewSI, sj  = NewSJ}, <<Result/binary, NewSJ:8>>).
 
@@ -18,7 +18,7 @@ decrypt(Header, Key) ->
     decrypt(Header, Key, <<>>).
 decrypt(<<>>, Key, Result) -> {Result, Key};
 decrypt(<<OldByte:8?I, Header/binary>>, #crypt_state{ri = RI, rj = RJ, key = K} = C, Result) ->
-    NewByte = lists:nth(RI+1, K) bxor (OldByte - RJ),
+    NewByte = (lists:nth(RI+1, K) bxor (OldByte - RJ)) band 255,
     NewRI   = (RI + 1) rem ?K,
     decrypt(Header, C#crypt_state{ri = NewRI, rj = OldByte}, <<Result/binary, NewByte:8>>).
 

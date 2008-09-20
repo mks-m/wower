@@ -24,6 +24,5 @@ decrypt(<<OldByte:8?I, Header/binary>>, #crypt_state{ri = RI, rj = RJ, key = K} 
 
 encryption_key(A) ->
     [{_, K}] = ets:lookup(connected_clients, A),
-    io:format("logon server key: ~p~n", [K]),
     Seed = 16#38A78315F8922530719867B18C04E2AA,
     binary_to_list(crypto:sha_mac(<<Seed:128?IB>>, K)).

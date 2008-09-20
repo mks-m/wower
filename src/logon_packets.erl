@@ -19,16 +19,12 @@ dispatch(Data, State) ->
 authenticate(Opcode, Data, State) ->
     case logon_patterns:auth_request(Data) of
     {ok, Account} ->
-        try mnesia:dirty_read({account, Account}) of
+        case mnesia:dirty_read({account, Account}) of
         [AccountRecord] -> 
             H = srp6:challenge(AccountRecord),
             NewState = State#logon_state{authenticated=no, account=AccountRecord, hash=H},
             {send, logon_patterns:auth_reply(H), NewState};
         _ ->
-            {send, logon_patterns:error(Opcode, account_missing), State}
-        catch
-        Error ->
-            wrong_code(Error),
             {send, logon_patterns:error(Opcode, account_missing), State}
         end;
     _ ->
@@ -45,17 +41,13 @@ proof(Opcode, Data, State) ->
     case logon_patterns:auth_proof(Data) of
     {ok, {A, M}} ->
         H = srp6:proof(A, State#logon_state.hash, State#logon_state.account),
-        try H#hash.client_proof of
+        case H#hash.client_proof of
         M ->
             %% client accepted and authenticated, we must store his session key for
             %% later realm_server authentication
             ets:insert(connected_clients, {(State#logon_state.account)#account.name, H#hash.session_key}),
             {send, logon_patterns:auth_reproof(H), State#logon_state{authenticated=yes}};
         _ ->
-            {send, logon_patterns:error(Opcode, account_missing), State}
-        catch
-        Error ->
-            wrong_code(Error),
             {send, logon_patterns:error(Opcode, account_missing), State}
         end;
     _ ->

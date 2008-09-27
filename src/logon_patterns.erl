@@ -2,6 +2,7 @@
 -compile(export_all).
 
 -include("logon_records.hrl").
+-include("database_records.hrl").
 
 -define(IN, /unsigned-little-integer).
 -define(NI, /unsigned-big-integer).
@@ -130,6 +131,13 @@ realmlist_reply(Realms) ->
 realmlist_build([]) ->
     <<>>;
 realmlist_build([R|Realms]) ->
-    <<0?B, 0?B, 0?B, (list_to_binary(R#realm.name))/binary, 0?B, 
-      (list_to_binary(R#realm.address))/binary, 0?B, (0.0)?L?f,
-      1?B, 1?B, 16#15?B, (realmlist_build(Realms))?b>>.
+    <<0?B, 
+      0?B, 
+      0?B, 
+      (list_to_binary(R#realm.name))/binary, 0?B, 
+      (list_to_binary(R#realm.address))/binary, 0?B, 
+      (0.0)?L?f,
+      (realm_helper:number_of_chars(R#realm.id))?B, 
+      1?B, 
+      16#15?B, 
+      (realmlist_build(Realms))?b>>.

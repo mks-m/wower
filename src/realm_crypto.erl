@@ -1,6 +1,8 @@
 -module(realm_crypto).
 -compile(export_all).
+
 -include("realm_records.hrl").
+
 -define(I, /unsigned-integer).
 -define(IB, /unsigned-integer-big).
 -define(IL, /unsigned-integer-little).

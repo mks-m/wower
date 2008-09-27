@@ -1,7 +1,8 @@
 -module(logon_server).
--export([start/0, start/1, load/0, compile/0, stop/0, restart/1, loop/1, install/0]).
+-export([start/0, start/1, load/0, compile/0, stop/0, restart/1, loop/1]).
 
 -include("logon_records.hrl").
+-include("database_records.hrl").
 
 start() ->
     crypto:start(),
@@ -40,39 +41,6 @@ loop(Socket, State) ->
     _ -> 
         ok
     end.
-
-install() ->
-    mnesia:delete_schema([node()]),
-    mnesia:create_schema([node()]),
-    mnesia:start(),
-    
-    mnesia:create_table(account, [{attributes, record_info(fields, account)},
-                                  {disc_copies, [node()]}]),
-    mnesia:dirty_write(account, #account{name     = "TEST", 
-                                         password = "TEST"}),
-
-    mnesia:wait_for_tables([account, realm], 1000),
-    
-    mnesia:create_table(realm, [{attributes, record_info(fields, realm)},
-                                  {disc_copies, [node()]}]),
-    mnesia:dirty_write(realm, #realm{name       = "Test Realm (10.51.1.254)", 
-                                     icon       = 0, 
-                                     lock       = 0, 
-                                     status     = 0, 
-                                     address    = "10.51.1.254:8640", 
-                                     population = 1.0, 
-                                     characters = 3, 
-                                     timezone   = 2}),
-    mnesia:dirty_write(realm, #realm{name       = "Test Realm (127.0.0.1)", 
-                                     icon       = 0, 
-                                     lock       = 0, 
-                                     status     = 0, 
-                                     address    = "127.0.0.1:8640", 
-                                     population = 1.0, 
-                                     characters = 3, 
-                                     timezone   = 2}),
-    mnesia:stop(),
-    ok.
 
 start(Method) ->
     ?MODULE:Method(),

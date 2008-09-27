@@ -1,6 +1,8 @@
 -module(srp6).
 -export([challenge/1, proof/3]).
+
 -include("logon_records.hrl").
+-include("database_records.hrl").
 
 -define(IN, /unsigned-little-integer).
 -define(NI, /unsigned-big-integer).

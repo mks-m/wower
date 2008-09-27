@@ -2,6 +2,7 @@
 -compile(export_all).
 
 -include("logon_records.hrl").
+-include("database_records.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 
 dispatch(Data, State) ->

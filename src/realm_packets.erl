@@ -10,16 +10,22 @@ dispatch(Data, #client_state{key=null, account=null} = State) ->
     io:format("handling: ~p~n", [Handler]),
     ?MODULE:Handler(Opcode, Rest, State);
 dispatch(<<Header:6/bytes, Data/binary>>, State) ->
-    io:format("encrypted opcode: ~p~n", [Header]),
-    {_, Opcode} = realm_crypto:decrypt(Header, State#client_state.key),
-    io:format("decrypted opcode: ~p~n", [Opcode]),
+    io:format("got header: ~p~n", [Header]),
+    {DecryptedHeader, NewKey} = realm_crypto:decrypt(Header, State#client_state.key),
+    io:format("dec header: ~p~n", [DecryptedHeader]),
+    <<Size:16/integer-big, Opcode:16/integer-little, _:16>> = DecryptedHeader,
+    io:format("packet size: ~p~n", [Size]),
+    io:format("data size: ~p~n", [size(Data) + 4]),
+    %% packet size check, should match
+    Size    = size(Data) + 4,
     Handler = realm_opcodes:h(Opcode),
     io:format("handling: ~p~n", [Handler]),
-    ?MODULE:Handler(Opcode, Data, State).
+    ?MODULE:Handler(Opcode, Data, State#client_state{key = NewKey}).
 
 cmsg_auth_session(_Opcode, Rest, State) ->
     {_, A, _}      = realm_patterns:cmsg_auth_session(Rest),
     {Header, Data} = realm_patterns:smsg_auth_response(),
+    io:format("~n~p~n~p~n", [Header, Data]),
     K      = realm_crypto:encryption_key(A),
     Crypt  = #crypt_state{si=0, sj=0, ri=0, rj=0, key=K},
     {H, C} = realm_crypto:encrypt(Header, Crypt),
@@ -35,4 +41,3 @@ wrong_packet(Handler, Data) ->
 
 wrong_code(Error) ->
     io:format("got error: ~p~n", [Error]).
-

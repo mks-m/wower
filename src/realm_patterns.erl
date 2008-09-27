@@ -1,5 +1,7 @@
 -module(realm_patterns).
--export([smsg_auth_challenge/1, cmsg_auth_session/1, smsg_auth_response/0]).
+-export([smsg_auth_challenge/1, 
+         cmsg_auth_session/1, 
+         smsg_auth_response/0]).
 
 -define(IN, /unsigned-little-integer).
 -define(NI, /unsigned-big-integer).
@@ -21,7 +23,7 @@
 %% byte      terminator
 smsg_auth_challenge(Seed) ->
     Opcode = realm_opcodes:c(smsg_auth_challenge),
-    <<8?W, Opcode?L?IN, Seed?L?IN, 0?B>>.
+    <<6?W?NI, Opcode?W?IN, Seed?L?IN>>.
 
 %% auth session
 %%
@@ -37,8 +39,10 @@ cmsg_auth_session(_) ->
 
 smsg_auth_response() ->
     Opcode = realm_opcodes:c(smsg_auth_response),
-    Packet = <<16#0C?B, 16#30?B, 16#78?B, 0?B, 0?B, 0?B, 0?B, 0?B, 0?B, 0?B, 1?B>>,
+    Packet = <<12?B, 0?L, 0?B, 0?L, 2?B>>,
     response(Opcode, Packet).
+
+%% Internal use only
 
 cmsg_auth_session_extract(<<0?B, Rest/bytes>>, Account) ->
     {Account, binary_to_list(Rest)};
@@ -46,4 +50,4 @@ cmsg_auth_session_extract(<<Letter?B, Rest/binary>>, Account) ->
     cmsg_auth_session_extract(Rest, Account ++ [Letter]).
 
 response(Opcode, Packet) ->
-    {<<(size(Packet)+2)?W?NI, Opcode?W?IN>>, Packet}.
+    {<<(size(Packet)+2)?W?NI, Opcode?W?IN>>, <<Packet/binary, 0?B>>}.

@@ -1,0 +1,60 @@
+diff --git a/src/realm_packets.erl b/src/realm_packets.erl
+index 2e23f77..31fe18c 100644
+--- a/src/realm_packets.erl
++++ b/src/realm_packets.erl
+@@ -10,16 +10,18 @@ dispatch(Data, #client_state{key=null, account=null} = State) ->
+     io:format("handling: ~p~n", [Handler]),
+     ?MODULE:Handler(Opcode, Rest, State);
+ dispatch(<<Header:6/bytes, Data/binary>>, State) ->
+-    io:format("encrypted opcode: ~p~n", [Header]),
+-    {_, Opcode} = realm_crypto:decrypt(Header, State#client_state.key),
+-    io:format("decrypted opcode: ~p~n", [Opcode]),
++    {DecryptedHeader, NewKey} = realm_crypto:decrypt(Header, State#client_state.key),
++    <<Size:16/integer-big, Opcode:16/integer-little, _:16>> = DecryptedHeader,
++    %% packet size check, should match
++    Size    = size(Data) + 4,
+     Handler = realm_opcodes:h(Opcode),
+     io:format("handling: ~p~n", [Handler]),
+-    ?MODULE:Handler(Opcode, Data, State).
++    ?MODULE:Handler(Opcode, Data, State#client_state{key = NewKey}).
+ 
+ cmsg_auth_session(_Opcode, Rest, State) ->
+     {_, A, _}      = realm_patterns:cmsg_auth_session(Rest),
+     {Header, Data} = realm_patterns:smsg_auth_response(),
++    io:format("~n~p~n~p~n", [Header, Data]),
+     K      = realm_crypto:encryption_key(A),
+     Crypt  = #crypt_state{si=0, sj=0, ri=0, rj=0, key=K},
+     {H, C} = realm_crypto:encrypt(Header, Crypt),
+@@ -35,4 +37,3 @@ wrong_packet(Handler, Data) ->
+ 
+ wrong_code(Error) ->
+     io:format("got error: ~p~n", [Error]).
+-
+diff --git a/src/realm_patterns.erl b/src/realm_patterns.erl
+index cb0cf8c..5758229 100644
+--- a/src/realm_patterns.erl
++++ b/src/realm_patterns.erl
+@@ -1,5 +1,7 @@
+ -module(realm_patterns).
+--export([smsg_auth_challenge/1, cmsg_auth_session/1, smsg_auth_response/0]).
++-export([smsg_auth_challenge/1, 
++         cmsg_auth_session/1, 
++         smsg_auth_response/0]).
+ 
+ -define(IN, /unsigned-little-integer).
+ -define(NI, /unsigned-big-integer).
+@@ -21,7 +23,7 @@
+ %% byte      terminator
+ smsg_auth_challenge(Seed) ->
+     Opcode = realm_opcodes:c(smsg_auth_challenge),
+-    <<8?W, Opcode?L?IN, Seed?L?IN, 0?B>>.
++    <<6?W?NI, Opcode?W?IN, Seed?L?IN, 0?B>>.
+ 
+ %% auth session
+ %%
+@@ -46,4 +48,4 @@ cmsg_auth_session_extract(<<Letter?B, Rest/binary>>, Account) ->
+     cmsg_auth_session_extract(Rest, Account ++ [Letter]).
+ 
+ response(Opcode, Packet) ->
+-    {<<(size(Packet)+2)?W?NI, Opcode?W?IN>>, Packet}.
++    {<<(size(Packet)+2)?W?NI, Opcode?W?IN>>, <<Packet/binary, 0?B>>}.

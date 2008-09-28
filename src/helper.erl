@@ -51,7 +51,7 @@ create_chars() ->
     mnesia:create_table(char, [{attributes, record_info(fields, char)},
                                 {disc_copies, [node()]}]),
     mnesia:dirty_write(char, #char{id             = 1, 
-                                   accout_id      = 1, 
+                                   account_id     = 1, 
                                    realm_id       = 1, 
                                    name           = "Moo", 
                                    race           = race_dwarf, 

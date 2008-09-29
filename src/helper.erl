@@ -1,5 +1,5 @@
 -module(helper).
--export([start/0, stop/0, restart/1, install/0]).
+-export([start/0, start/1, stop/0, restart/1, install/0, compile/0, load/0]).
 
 -include("logon_records.hrl").
 -include("realm_records.hrl").
@@ -9,6 +9,9 @@ start() ->
     logon_server:start(),
     realm_server:start(),
     ok.
+
+start(Method) when Method =:= compile orelse Method =:= load ->
+    ?MODULE:Method().
 
 stop() ->
     logon_server:stop(),
@@ -20,12 +23,19 @@ restart(Method) ->
     realm_server:restart(Method),
     ok.
 
+compile() ->
+    logon_server:compile(),
+    realm_server:compile().
+
+load() ->
+    logon_server:load(),
+    realm_server:load().
+
 install() ->
     mnesia:delete_schema([node()]),
     mnesia:create_schema([node()]),
     mnesia:start(),
     create_accounts(),
-    %% mnesia:wait_for_tables([account, realm], 1000),
     create_realms(),
     create_chars(),
     mnesia:stop(),

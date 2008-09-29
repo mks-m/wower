@@ -4,6 +4,8 @@ wower is Erlang implementation of World of Warcraft server emulator.
 
 == Current status ==
 
+Targeting WoTLK 3.0.2.
+
 === Logon server ===
 
 Allows you to connect and select realm.
@@ -12,5 +14,8 @@ Does not support patching.
 
 === Realm server ===
 
-Accepts connections. Stucks client on "Connected" message.
-Packet encryption/decryption implemented.
+Accepts connections. Packet encryption/decryption implemented.
+
+=== Working on ===
+
+Displaying characters list after selecting realm.

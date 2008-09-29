@@ -1,5 +1,5 @@
 -module(realm_packets).
--export([dispatch/2,
+-export([dispatch/2, send/3, skip/1,
          cmsg_auth_session/2,
          cmsg_char_enum/2]).
 

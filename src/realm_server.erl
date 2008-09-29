@@ -57,4 +57,4 @@ compile() ->
     c:c(realm_opcodes),
     c:c(realm_patterns),
     c:c(realm_packets),
-    c:l(realm_helper).
+    c:c(realm_helper).

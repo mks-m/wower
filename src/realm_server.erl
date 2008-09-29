@@ -49,10 +49,12 @@ load() ->
     c:l(srp6),
     c:l(realm_opcodes),
     c:l(realm_patterns),
-    c:l(realm_packets).
+    c:l(realm_packets),
+    c:l(realm_helper).
 
 compile() ->
     c:c(srp6),
     c:c(realm_opcodes),
     c:c(realm_patterns),
-    c:c(realm_packets).
+    c:c(realm_packets),
+    c:l(realm_helper).

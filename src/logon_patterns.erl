@@ -122,22 +122,23 @@ realmlist_request(_) ->
 %%   byte      unknown         0x2C
 %% byte      unknown           0x10
 %% byte      terminator?       0
-realmlist_reply(Realms) ->
-    BinaryRealms = realmlist_build(Realms),
+realmlist_reply(Realms, AccData) ->
+    io:format("~n~p~n~p~n", [Realms, AccData]),
+    BinaryRealms = realmlist_build(Realms, AccData),
     <<16?B, (size(BinaryRealms) + 8)?W?IN, 0?L, (length(Realms))?W?IN, 
       BinaryRealms/binary, 16#10?B, 0?B>>.
 
 %% realmlist helper function
-realmlist_build([]) ->
+realmlist_build([], []) ->
     <<>>;
-realmlist_build([R|Realms]) ->
+realmlist_build([R|Realms], [A|AccData]) ->
     <<0?B, 
       0?B, 
       0?B, 
       (list_to_binary(R#realm.name))/binary, 0?B, 
       (list_to_binary(R#realm.address))/binary, 0?B, 
       (0.0)?L?f,
-      (realm_helper:number_of_chars(R#realm.id))?B, 
+      (realm_helper:number_of_chars(A, R#realm.id))?B, 
       1?B, 
       16#15?B, 
-      (realmlist_build(Realms))?b>>.
+      (realmlist_build(Realms, AccData))?b>>.

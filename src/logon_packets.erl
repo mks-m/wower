@@ -20,7 +20,7 @@ dispatch(Data, State) ->
 authenticate(Opcode, Data, State) ->
     case logon_patterns:auth_request(Data) of
     {ok, Account} ->
-        case mnesia:dirty_read({account, Account}) of
+        case account_helper:find_by_name(Account) of
         [AccountRecord] -> 
             H = srp6:challenge(AccountRecord),
             NewState = State#logon_state{authenticated=no, account=AccountRecord, hash=H},
@@ -58,9 +58,9 @@ proof(Opcode, Data, State) ->
 realmlist(_Opcode, Data, #logon_state{authenticated=yes} = State) ->
     case logon_patterns:realmlist_request(Data) of
     {ok} ->
-        GetRealms        = fun() -> qlc:eval(qlc:q([X || X <- mnesia:table(realm)])) end,
-        {atomic, Realms} = mnesia:transaction(GetRealms),
-        Response         = logon_patterns:realmlist_reply(Realms),
+        Realms   = realm_helper:realms(),
+        AccData  = lists:map(fun(E) -> realm_helper:number_of_chars((State#logon_state.account)#account.id, E#realm.id) end, Realms),
+        Response = logon_patterns:realmlist_reply(Realms, AccData),
         {send, Response, State};
     _    ->
         {skip, wrong_packet(realmlist, Data), State}

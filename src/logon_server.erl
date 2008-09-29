@@ -50,10 +50,12 @@ load() ->
     c:l(srp6),
     c:l(logon_opcodes),
     c:l(logon_packets),
-    c:l(logon_patterns).
+    c:l(logon_patterns),
+    c:l(account_helper).
 
 compile() ->
     c:c(srp6),
     c:c(logon_opcodes),
     c:c(logon_packets),
-    c:c(logon_patterns).
+    c:c(logon_patterns),
+    c:c(account_helper).

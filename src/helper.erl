@@ -7,15 +7,18 @@
 
 start() ->
     logon_server:start(),
-    realm_server:start().
+    realm_server:start(),
+    ok.
 
 stop() ->
     logon_server:stop(),
-    realm_server:stop().
+    realm_server:stop(),
+    ok.
 
 restart(Method) ->
     logon_server:restart(Method),
-    realm_server:restart(Method).
+    realm_server:restart(Method),
+    ok.
 
 install() ->
     mnesia:delete_schema([node()]),

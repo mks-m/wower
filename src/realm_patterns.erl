@@ -1,7 +1,8 @@
 -module(realm_patterns).
 -export([smsg_auth_challenge/1, 
          cmsg_auth_session/1, 
-         smsg_auth_response/0]).
+         smsg_auth_response/0,
+         smsg_char_enum/2]).
 
 -define(IN, /unsigned-little-integer).
 -define(NI, /unsigned-big-integer).
@@ -41,6 +42,9 @@ smsg_auth_response() ->
     Opcode = realm_opcodes:c(smsg_auth_response),
     Packet = <<12?B, 0?L, 0?B, 0?L, 2?B>>,
     response(Opcode, Packet).
+
+smsg_char_enum(AccId, RealmId) ->
+    realm_helper:chars(AccId, RealmId).
 
 %% Internal use only
 

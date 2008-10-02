@@ -9,15 +9,13 @@
 dispatch(Data, #client_state{key=null, account=null} = State) ->
     <<_:16, Opcode:32/integer-little, Rest/binary>> = Data,
     Handler = realm_opcodes:h(Opcode),
-    io:format("handling: ~p~n", [Handler]),
-    ?MODULE:Handler(Opcode, Rest, State);
+    io:format("[d] handling: ~p~n", [Handler]),
+    ?MODULE:Handler(Rest, State);
 dispatch(<<Header:6/bytes, Data/binary>>, State) ->
     {DecryptedHeader, NewKey} = realm_crypto:decrypt(Header, State#client_state.key),
-    <<Size:16/integer-big, Opcode:16/integer-little, _:16>> = DecryptedHeader,
-    %% packet size check, should match
-    Size    = size(Data) + 4,
+    <<_:16, Opcode:16/integer-little, _:16>> = DecryptedHeader,
     Handler = realm_opcodes:h(Opcode),
-    io:format("handling: ~p~n", [Handler]),
+    io:format("[e] handling: ~p~n", [Handler]),
     ?MODULE:Handler(Data, State#client_state{key = NewKey}).
 
 cmsg_auth_session(Rest, State) ->
@@ -27,7 +25,7 @@ cmsg_auth_session(Rest, State) ->
     Crypt  = #crypt_state{si=0, sj=0, ri=0, rj=0, key=K},
     send(Header, Data, State#client_state{key=Crypt, account=A}).
 
-cmsg_char_enum(_Rest, State) ->
+cmsg_char_enum(_, State) ->
     {Header, Data} = realm_patterns:smsg_char_enum(State#client_state.account),
     send(Header, Data, State).
 

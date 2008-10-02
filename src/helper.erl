@@ -10,8 +10,10 @@ start() ->
     realm_server:start(),
     ok.
 
-start(Method) when Method =:= compile orelse Method =:= load ->
-    ?MODULE:Method().
+start(Method) ->
+    ok = ?MODULE:Method(),
+    ok = ?MODULE:start(),
+    ok.
 
 stop() ->
     logon_server:stop(),
@@ -25,11 +27,13 @@ restart(Method) ->
 
 compile() ->
     logon_server:compile(),
-    realm_server:compile().
+    realm_server:compile(),
+    ok.
 
 load() ->
     logon_server:load(),
-    realm_server:load().
+    realm_server:load(),
+    ok.
 
 install() ->
     mnesia:delete_schema([node()]),

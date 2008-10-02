@@ -28,7 +28,6 @@ loop(Socket, State) ->
     {ok, Data} ->
         case realm_packets:dispatch(Data, State) of
         {send, Response, NewState} ->
-            io:format("sending: ~p~n", [Response]),
             gen_tcp:send(Socket, Response),
             loop(Socket, NewState);
         {skip, _, NewState} ->

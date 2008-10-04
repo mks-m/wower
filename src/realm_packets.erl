@@ -26,7 +26,8 @@ cmsg_auth_session(Rest, State) ->
     send(Header, Data, State#client_state{key=Crypt, account=A}).
 
 cmsg_char_enum(_, State) ->
-    {Header, Data} = realm_patterns:smsg_char_enum(State#client_state.account),
+    {Header, Data} = realm_patterns:smsg_char_enum(State#client_state.account,
+                                                   State#client_state.realm),
     send(Header, Data, State).
 
 send(Header, Data, #client_state{key = Crypt} = State) ->

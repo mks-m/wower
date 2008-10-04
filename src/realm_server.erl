@@ -21,7 +21,7 @@ loop(Socket) ->
     Seed   = random:uniform(16#FFFFFFFF),
     Packet = realm_patterns:smsg_auth_challenge(Seed),
     gen_tcp:send(Socket, Packet),
-    loop(Socket, #client_state{}).
+    loop(Socket, #client_state{realm=1}).
 
 loop(Socket, State) ->
     case gen_tcp:recv(Socket, 0) of

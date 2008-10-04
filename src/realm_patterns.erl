@@ -4,6 +4,8 @@
          smsg_auth_response/0,
          smsg_char_enum/2]).
 
+-include("database_records.hrl").
+
 -define(IN, /unsigned-little-integer).
 -define(NI, /unsigned-big-integer).
 -define(b,  /bytes).
@@ -44,7 +46,10 @@ smsg_auth_response() ->
     response(Opcode, Packet).
 
 smsg_char_enum(AccId, RealmId) ->
-    realm_helper:chars(AccId, RealmId).
+    Opcode = realm_opcodes:c(smsg_char_enum),
+    Chars  = realm_helper:chars(AccId, RealmId),
+    Packet = <<(length(Chars))?B, (smsg_char_enum_build(Chars))/binary>>,
+    response(Opcode, Packet).
 
 %% Internal use only
 
@@ -52,6 +57,39 @@ cmsg_auth_session_extract(<<0?B, Rest/bytes>>, Account) ->
     {Account, binary_to_list(Rest)};
 cmsg_auth_session_extract(<<Letter?B, Rest/binary>>, Account) ->
     cmsg_auth_session_extract(Rest, Account ++ [Letter]).
+
+smsg_char_enum_build([]) ->
+    <<>>;
+smsg_char_enum_build([Char|Chars]) ->
+    <<0?Q,                                       % guid 
+      (Char#char.name)?b, 0?B,                   % char name
+      (char_helper:race(Char#char.race))?B,      % race
+      (char_helper:class(Char#char.class))?B,    % class
+      (char_helper:gender(Char#char.gender))?B,  % gender
+      159?L?NI,                                  % player bytes
+      160?L?IN,                                  % player bytes 2
+      1?B,                                       % level
+      15?L?IN,                                   % zone id
+      501?L?IN,                                  % map id
+      (Char#char.position_x)?f-little,           % x
+      (Char#char.position_y)?f-little,           % y
+      (Char#char.position_z)?f-little,           % z
+      (Char#char.guild_id)?L?IN,                 % guild id
+      (Char#char.general_flags)?L?IN,            % flags
+      0?L,                                       % new in wolk
+      1?B, 
+      0?L, 
+      0?L, 
+      0?L,
+      (smsg_char_enum_build_equipment(char_helper:equipment(Char#char.id)))/binary,
+      0?L, 
+      0?B, 
+      0?L,
+      (smsg_char_enum_build(Chars))/binary>>.
+
+smsg_char_enum_build_equipment([]) -> <<>>;
+smsg_char_enum_build_equipment([_|Items]) ->
+    <<0?L?IN, 0?B, 0?L?IN, (smsg_char_enum_build_equipment(Items))/binary>>.
 
 response(Opcode, Packet) ->
     {<<(size(Packet)+2)?W?NI, Opcode?W?IN>>, <<Packet/binary, 0?B>>}.

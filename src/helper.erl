@@ -86,5 +86,5 @@ create_chars() ->
                                    map_id         = 0,
                                    zone_id        = 1,
                                    guild_id       = 0, 
-                                   general_flags  = 0, 
+                                   general_flags  = 64, 
                                    at_login_flags = 0}).

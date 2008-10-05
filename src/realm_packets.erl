@@ -1,7 +1,8 @@
 -module(realm_packets).
 -export([dispatch/2, send/3, skip/1,
          cmsg_auth_session/2,
-         cmsg_char_enum/2]).
+         cmsg_char_enum/2,
+         cmsg_realm_split/2]).
 
 -include("realm_records.hrl").
 -include("database_records.hrl").
@@ -23,11 +24,20 @@ cmsg_auth_session(Rest, State) ->
     {Header, Data} = realm_patterns:smsg_auth_response(),
     K      = realm_crypto:encryption_key(A),
     Crypt  = #crypt_state{si=0, sj=0, ri=0, rj=0, key=K},
-    send(Header, Data, State#client_state{key=Crypt, account=A}).
+    [Account] = account_helper:find_by_name(A),
+    send(Header, Data, State#client_state{key=Crypt, account=Account#account.id}).
 
 cmsg_char_enum(_, State) ->
+    io:format("preparing char_enum~n", []),
     {Header, Data} = realm_patterns:smsg_char_enum(State#client_state.account,
                                                    State#client_state.realm),
+    io:format("got char_enum data: ~n~p~n~p~n", [Header, Data]),
+    send(Header, Data, State).
+
+cmsg_realm_split(_, State) ->
+    io:format("preparing realm_split~n", []),
+    {Header, Data} = realm_patterns:smsg_realm_split(),
+    io:format("got realm_split data: ~n~p~n~p~n", [Header, Data]),
     send(Header, Data, State).
 
 send(Header, Data, #client_state{key = Crypt} = State) ->

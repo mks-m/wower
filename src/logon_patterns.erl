@@ -123,7 +123,6 @@ realmlist_request(_) ->
 %% byte      unknown           0x10
 %% byte      terminator?       0
 realmlist_reply(Realms, AccData) ->
-    io:format("~n~p~n~p~n", [Realms, AccData]),
     BinaryRealms = realmlist_build(Realms, AccData),
     <<16?B, (size(BinaryRealms) + 8)?W?IN, 0?L, (length(Realms))?W?IN, 
       BinaryRealms/binary, 16#10?B, 0?B>>.

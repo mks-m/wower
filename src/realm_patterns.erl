@@ -61,35 +61,31 @@ cmsg_auth_session_extract(<<Letter?B, Rest/binary>>, Account) ->
 smsg_char_enum_build([]) ->
     <<>>;
 smsg_char_enum_build([Char|Chars]) ->
-    <<0?Q,                                       % guid 
-      (Char#char.name)?b, 0?B,                   % char name
-      (char_helper:race(Char#char.race))?B,      % race
-      (char_helper:class(Char#char.class))?B,    % class
-      (char_helper:gender(Char#char.gender))?B,  % gender
-      159?L?NI,                                  % player bytes
-      160?L?IN,                                  % player bytes 2
-      1?B,                                       % level
-      15?L?IN,                                   % zone id
-      501?L?IN,                                  % map id
-      (Char#char.position_x)?f-little,           % x
-      (Char#char.position_y)?f-little,           % y
-      (Char#char.position_z)?f-little,           % z
-      (Char#char.guild_id)?L?IN,                 % guild id
-      (Char#char.general_flags)?L?IN,            % flags
-      0?L,                                       % new in wolk
-      1?B, 
-      0?L, 
-      0?L, 
-      0?L,
-      (smsg_char_enum_build_equipment(char_helper:equipment(Char#char.id)))/binary,
-      0?L, 
-      0?B, 
-      0?L,
+    <<0?Q,                                         % guid 
+      (Char#char.name)?b, 0?B,                     % char name
+      (Char#char.player_bytes)/binary,             % 8 bytes: race, class, gender, skin, face,  
+                                                   %          hair style, hair color, facial hair
+      (Char#char.level)?B,                         % level
+      (Char#char.zone_id)?L?IN,                    % zone id
+      (Char#char.map_id)?L?IN,                     % map id
+      (Char#char.position_x)?f-little,             % x
+      (Char#char.position_y)?f-little,             % y
+      (Char#char.position_z)?f-little,             % z
+      (Char#char.guild_id)?L?IN,                   % guild id
+      (Char#char.general_flags)?L?IN,              % flags
+      0?L,                                         % new in wolk
+      1?B,                                         % rest state
+      0?L,                                         % pet info
+      0?L,                                         % pet level
+      0?L,                                         % pet family
+      (smsg_char_enum_equip(Char#char.id))/binary, % equipment
       (smsg_char_enum_build(Chars))/binary>>.
 
-smsg_char_enum_build_equipment([]) -> <<>>;
-smsg_char_enum_build_equipment([_|Items]) ->
-    <<0?L?IN, 0?B, 0?L?IN, (smsg_char_enum_build_equipment(Items))/binary>>.
+smsg_char_enum_equip([]) -> <<>>;
+smsg_char_enum_equip([_|Items]) ->
+    <<0?L?IN, 0?B, 0?L?IN, (smsg_char_enum_equip(Items))/binary>>;
+smsg_char_enum_equip(CharId) ->
+    smsg_char_enum_equip(char_helper:equipment(CharId)).
 
 response(Opcode, Packet) ->
     {<<(size(Packet)+2)?W?NI, Opcode?W?IN>>, <<Packet/binary, 0?B>>}.

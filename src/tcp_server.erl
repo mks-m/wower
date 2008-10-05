@@ -39,7 +39,7 @@ accept_loop({Server, LSocket, {M, F}}) ->
    
 % To be more robust we should be using spawn_link and trapping exits
 accept(State = #server_state{lsocket=LSocket, loop = Loop}) ->
-    proc_lib:spawn_link(?MODULE, accept_loop, [{self(), LSocket, Loop}]),
+    proc_lib:spawn(?MODULE, accept_loop, [{self(), LSocket, Loop}]),
     State.
 
 % These are just here to suppress warnings.

@@ -2,7 +2,7 @@
 -compile(export_all).
 
 equipment(_) ->
-    lists:seq(1,19).
+    lists:seq(1,20).
 
 gender(male)   -> 0;
 gender(female) -> 1;

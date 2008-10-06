@@ -56,7 +56,7 @@ smsg_char_enum(AccId, RealmId) ->
 smsg_realm_split() ->
     Opcode = realm_opcodes:c(smsg_realm_split),
     Date   = list_to_binary("01/01/01"),
-    Packet = <<16#FFFFFFFF?L, 0?L, Date/binary>>,
+    Packet = <<16#FFFFFFFF?L, 0?L, Date/binary, 0?B>>,
     response(Opcode, Packet).
 
 %% Internal use only

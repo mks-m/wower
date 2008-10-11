@@ -90,27 +90,7 @@ smsg_char_enum_build([Char|Chars], Ready) ->
       0?L,                                         % pet info
       0?L,                                         % pet level
       0?L,                                         % pet family
-      (<<16#CA6A00000100000000:72>>)/binary,
-      (<<16#7E2600000200000000:72>>)/binary,
-      (<<16#D54700000300000000:72>>)/binary,
-      (<<16#A32600000400000000:72>>)/binary,
-      (<<16#997B00000500000000:72>>)/binary,
-      (<<16#7EB500000600000000:72>>)/binary,
-      (<<16#966E00000700000000:72>>)/binary,
-      (<<16#5C6E00000800000000:72>>)/binary,
-      (<<16#B76E00000900000000:72>>)/binary,
-      (<<16#8D4800000A00000000:72>>)/binary,
-      (<<16#6F2600000B00000000:72>>)/binary,
-      (<<16#E00000000B00000000:72>>)/binary,
-      (<<16#000000000000000000:72>>)/binary,
-      (<<16#7B5200000C00000000:72>>)/binary,
-      (<<16#C06B00001000000000:72>>)/binary,
-      (<<16#122100000D00000000:72>>)/binary,
-      (<<16#BA4A00000D00000000:72>>)/binary,
-      (<<16#B65000001A00000000:72>>)/binary,
-      (<<16#8D5000001300000000:72>>)/binary,
-      (<<16#200A00001200000000:72>>)/binary
-      % (smsg_char_enum_equip(Char#char.id))/binary  % equipment
+      (smsg_char_enum_equip(Char#char.id))/binary  % equipment
       >>,
     smsg_char_enum_build(Chars, <<Ready/binary, C/binary>>).
 
@@ -122,4 +102,4 @@ smsg_char_enum_equip([_|Items], Ready) ->
     smsg_char_enum_equip(Items, <<Ready/binary, 0?L?IN, 0?B, 0?L?IN>>).
 
 response(Opcode, Packet) ->
-    {<<(size(Packet)+2)?W?NI, Opcode?W?IN>>, <<Packet/binary, 0?B>>}.
+    {<<(size(Packet)+2)?W?NI, Opcode?W?IN>>, Packet}.

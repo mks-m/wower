@@ -18,6 +18,7 @@ restart(Method) ->
     start().
 
 loop(Socket) ->
+    explain_exit(),
     Seed   = random:uniform(16#FFFFFFFF),
     Packet = realm_patterns:smsg_auth_challenge(Seed),
     gen_tcp:send(Socket, Packet),
@@ -57,3 +58,14 @@ compile() ->
     c:c(realm_patterns),
     c:c(realm_packets),
     c:c(realm_helper).
+
+explain_exit() ->
+    Pid = self(),
+    spawn(fun() -> 
+		  process_flag(trap_exit, true),
+		  link(Pid),
+		  receive
+		      {Type, Pid, Why} ->
+			  io:format("process ~p:~n~p~n", [Type, Why])
+		  end
+	  end).

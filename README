@@ -15,7 +15,4 @@ Does not support patching.
 === Realm server ===
 
 Accepts connections. Packet encryption/decryption implemented.
-
-=== Working on ===
-
-Displaying characters list after selecting realm.
+Character list implemented.

@@ -3,7 +3,9 @@
          cmsg_auth_session/1, 
          smsg_auth_response/0,
          smsg_char_enum/2,
-         smsg_realm_split/0]).
+         smsg_realm_split/0,
+         cmsg_ping/1,
+         smsg_pong/1]).
 
 -include("database_records.hrl").
 
@@ -59,6 +61,13 @@ smsg_realm_split() ->
     Packet = <<16#FFFFFFFF?L, 0?L, Date/binary, 0?B>>,
     response(Opcode, Packet).
 
+cmsg_ping(<<Sequence?L?IN, Latency?L?IN>>) ->
+    {Sequence, Latency}.
+
+smsg_pong(Sequence) ->
+    Opcode = realm_opcodes:c(smsg_pong),
+    response(Opcode, <<Sequence?L?IN>>).
+
 %% Internal use only
 
 cmsg_auth_session_extract(<<0?B, Rest/bytes>>, Account) ->
@@ -73,7 +82,8 @@ smsg_char_enum_build([], Ready) ->
     Ready;
 smsg_char_enum_build([Char|Chars], Ready) ->
     C = 
-    <<(random:uniform(16#FFFFFFFF))?L, 0?L,        % guid 
+    <<Ready/binary,
+      (random:uniform(16#FFFFFFFF))?L, 0?L,        % guid 
       (list_to_binary(Char#char.name))/binary, 0?B,% char name
       (Char#char.player_bytes)/binary,             % 8 bytes: race, class, gender, skin, face,  
                                                    %          hair style, hair color, facial hair
@@ -92,7 +102,7 @@ smsg_char_enum_build([Char|Chars], Ready) ->
       0?L,                                         % pet family
       (smsg_char_enum_equip(Char#char.id))/binary  % equipment
       >>,
-    smsg_char_enum_build(Chars, <<Ready/binary, C/binary>>).
+    smsg_char_enum_build(Chars, C).
 
 smsg_char_enum_equip(CharId) ->
     smsg_char_enum_equip(char_helper:equipment(CharId), <<>>).

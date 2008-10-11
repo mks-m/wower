@@ -2,7 +2,8 @@
 -export([dispatch/2, send/3, skip/1,
          cmsg_auth_session/2,
          cmsg_char_enum/2,
-         cmsg_realm_split/2]).
+         cmsg_realm_split/2,
+         cmsg_ping/2]).
 
 -include("realm_records.hrl").
 -include("database_records.hrl").
@@ -14,6 +15,7 @@ dispatch(Data, #client_state{key=null, account=null} = State) ->
     ?MODULE:Handler(Rest, State);
 dispatch(<<Header:6/bytes, Data/binary>>, State) ->
     {DecryptedHeader, NewKey} = realm_crypto:decrypt(Header, State#client_state.key),
+    io:format("~p~n", [DecryptedHeader]),
     <<_:16, Opcode:16/integer-little, _:16>> = DecryptedHeader,
     Handler = realm_opcodes:h(Opcode),
     io:format("[e] handling: ~p~n", [Handler]),
@@ -28,17 +30,18 @@ cmsg_auth_session(Rest, State) ->
     send(Header, Data, State#client_state{key=Crypt, account=Account#account.id}).
 
 cmsg_char_enum(_, State) ->
-    io:format("preparing char_enum~n", []),
     {Header, Data} = realm_patterns:smsg_char_enum(State#client_state.account,
                                                    State#client_state.realm),
-    io:format("got char_enum data: ~n~p~n~p~n", [Header, Data]),
     send(Header, Data, State).
 
 cmsg_realm_split(_, State) ->
-    io:format("preparing realm_split~n", []),
     {Header, Data} = realm_patterns:smsg_realm_split(),
-    io:format("got realm_split data: ~n~p~n~p~n", [Header, Data]),
     send(Header, Data, State).
+
+cmsg_ping(Binary, State) ->
+    {Sequence, Latency} = realm_patterns:cmsg_ping(Binary),
+    {Header, Data} = realm_patterns:smsg_pong(Sequence),
+    send(Header, Data, State#client_state{latency=Latency}).
 
 send(Header, Data, #client_state{key = Crypt} = State) ->
     {H, C} = realm_crypto:encrypt(Header, Crypt),

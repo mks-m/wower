@@ -63,7 +63,7 @@ create_realms() ->
                                      address    = "127.0.0.1:8640", 
                                      population = 1.0, 
                                      timezone   = 2}),
-    mnesia:dirty_write(realm, #realm{id = 1,
+    mnesia:dirty_write(realm, #realm{id = 2,
                                      name       = "Test Realm (192.168.0.100)", 
                                      icon       = 0, 
                                      lock       = 0, 

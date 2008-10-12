@@ -1,5 +1,5 @@
 -module(realm_packets).
--export([dispatch/2, send/3, skip/1,
+-export([send/3, skip/1,
          cmsg_auth_session/2,
          cmsg_char_enum/2,
          cmsg_realm_split/2,
@@ -12,18 +12,6 @@
 
 -include("realm_records.hrl").
 -include("database_records.hrl").
-
-dispatch(Data, #client_state{key=null, account=null} = State) ->
-    <<_:16, Opcode:32/integer-little, Rest/binary>> = Data,
-    Handler = realm_opcodes:h(Opcode),
-    io:format("[d] handling: ~p~n", [Handler]),
-    ?MODULE:Handler(Rest, State);
-dispatch(<<Header:6/bytes, Data/binary>>, State) ->
-    {DecryptedHeader, NewKey} = realm_crypto:decrypt(Header, State#client_state.key),
-    <<_:16, Opcode:16/integer-little, _:16>> = DecryptedHeader,
-    Handler = realm_opcodes:h(Opcode),
-    io:format("[e] handling: ~p (~p)~n", [Handler, Opcode]),
-    ?MODULE:Handler(Data, State#client_state{key = NewKey}).
 
 cmsg_auth_session(Rest, State) ->
     {_, A, _}      = realm_patterns:cmsg_auth_session(Rest),

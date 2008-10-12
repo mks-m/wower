@@ -22,21 +22,33 @@ loop(Socket) ->
     Seed   = random:uniform(16#FFFFFFFF),
     Packet = realm_patterns:smsg_auth_challenge(Seed),
     gen_tcp:send(Socket, Packet),
-    loop(Socket, #client_state{realm=1}).
+    loop1(Socket, #client_state{realm=1}).
 
-loop(Socket, State) ->
-    case gen_tcp:recv(Socket, 0) of
-    {ok, Data} ->
-        case realm_packets:dispatch(Data, State) of
-        {send, Response, NewState} ->
-            gen_tcp:send(Socket, Response),
-            loop(Socket, NewState);
-        {skip, _, NewState} ->
-            loop(Socket, NewState)
-        end;
-    {error, closed} ->
-        ok
-    end.
+loop1(Socket, State) ->
+    Opcode = realm_opcodes:c(cmsg_auth_session),
+    {ok, <<Size:16/integer-big, Opcode:32/integer-little>>} = gen_tcp:recv(Socket, 6),
+    io:format("handling: cmsg_auth_session (~p), size: ~p~n", [Opcode, Size]),
+    dispatch(Socket, Size-4, cmsg_auth_session, State).
+
+loop2(Socket, State) ->
+    {ok, Header} = gen_tcp:recv(Socket, 6),
+    {DecryptedHeader, NewKey} = realm_crypto:decrypt(Header, State#client_state.key),
+    <<Size:16/integer-big, Opcode:32/integer-little>> = DecryptedHeader,
+    Handler = realm_opcodes:h(Opcode),
+    io:format("handling: ~p (~p), size: ~p~n", [Handler, Opcode, Size]),
+    dispatch(Socket, Size-4, Handler, State#client_state{key = NewKey}).
+
+dispatch(Socket, 0, Handler, State) ->
+    proceed(Socket, realm_packets:Handler(<<>>, State));
+dispatch(Socket, Size, Handler, State) ->
+    {ok, Data} = gen_tcp:recv(Socket, Size),
+    proceed(Socket, realm_packets:Handler(Data, State)).
+
+proceed(Socket, {send, Response, State}) ->
+    gen_tcp:send(Socket, Response),
+    loop2(Socket, State);
+proceed(Socket, {skip, _, State}) ->
+    loop2(Socket, State).
 
 start(Method) ->
     ?MODULE:Method(),

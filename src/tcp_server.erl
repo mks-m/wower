@@ -16,7 +16,7 @@
 
 start(Name, Port, Loop) ->
     State = #server_state{port = Port, loop = Loop},
-    gen_server:start_link({local, Name}, ?MODULE, State, []).
+    gen_server:start_link({local, Name}, ?MODULE, State, [{debug, [trace]}]).
 
 init(State = #server_state{port=Port}) ->
     case gen_tcp:listen(Port, ?TCP_OPTIONS) of

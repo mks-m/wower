@@ -62,6 +62,14 @@ create_realms() ->
                                      status     = 0, 
                                      address    = "127.0.0.1:8640", 
                                      population = 1.0, 
+                                     timezone   = 2}),
+    mnesia:dirty_write(realm, #realm{id = 1,
+                                     name       = "Test Realm (192.168.0.100)", 
+                                     icon       = 0, 
+                                     lock       = 0, 
+                                     status     = 0, 
+                                     address    = "192.168.0.100:8640", 
+                                     population = 1.0, 
                                      timezone   = 2}).
 
 create_chars() ->
@@ -70,7 +78,7 @@ create_chars() ->
     mnesia:dirty_write(char, #char{id             = 1, 
                                    account_id     = 1, 
                                    realm_id       = 1, 
-                                   name           = "Euler", 
+                                   name           = "Moo", 
                                    player_bytes   = <<3:8, 1:8, 0:8, 8:8, 9:8, 4:8, 0:8, 1:8>>,
                                    level          = 1,
                                    zone_id        = 1537,

@@ -5,7 +5,8 @@
          smsg_char_enum/2,
          smsg_realm_split/0,
          cmsg_ping/1,
-         smsg_pong/1]).
+         smsg_pong/1,
+         smsg_whois/1]).
 
 -include("database_records.hrl").
 
@@ -67,6 +68,10 @@ cmsg_ping(<<Sequence?L?IN, Latency?L?IN>>) ->
 smsg_pong(Sequence) ->
     Opcode = realm_opcodes:c(smsg_pong),
     response(Opcode, <<Sequence?L?IN>>).
+
+smsg_whois(Response) ->
+    Opcode = realm_opcodes:c(smsg_whois),
+    response(Opcode, <<Response/bytes, 0?B>>).
 
 %% Internal use only
 

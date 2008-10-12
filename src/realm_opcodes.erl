@@ -1152,7 +1152,8 @@ h(16#41F) -> cmsg_accept_level_grant;
 h(16#420) -> smsg_refer_a_friend_failure;
 h(16#421) -> smsg_spline_move_set_flying;
 h(16#422) -> smsg_spline_move_unset_flying;
-h(16#423) -> smsg_summon_cancel.
+h(16#423) -> smsg_summon_cancel;
+h(_)      -> undef_opcode.
 
 c(msg_null_action) -> 0;
 c(cmsg_bootme) -> 1;

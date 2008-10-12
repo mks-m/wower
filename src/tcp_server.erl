@@ -6,7 +6,7 @@
 -export([accept_loop/1]).
 -export([start/3]).
 
--define(TCP_OPTIONS, [binary, inet, {packet, 0}, {active, false}, {reuseaddr, true}]).
+-define(TCP_OPTIONS, [binary, inet, {packet, 0}, {active, false}]).
 
 -record(server_state, {
         port,

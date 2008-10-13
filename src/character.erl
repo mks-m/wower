@@ -43,6 +43,7 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         io:format("unhandled: ~p~n~p~n", [Handler, Data]),
         not_in_world(State);
     
-    _ ->
+    Any ->
+        io:format("unauthorized: ~p~n", [Any]),
         not_in_world(State)
     end.

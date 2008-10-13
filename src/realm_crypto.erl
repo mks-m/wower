@@ -11,18 +11,18 @@
 encrypt(Header, Key) ->
     encrypt(Header, Key, <<>>).
 encrypt(<<>>, Key, Result) -> {Result, Key};
-encrypt(<<OldByte:8?I, Header/binary>>, #crypt_state{si = SI, sj = SJ, key = K} = C, Result) ->
+encrypt(<<OldByte:8?I, Header/binary>>, #crypt_state{i = SI, j = SJ, key = K} = C, Result) ->
     NewByte = ((lists:nth(SI+1, K) bxor OldByte) + SJ) band 255,
     NewSI   = (SI+1) rem ?K,
-    encrypt(Header, C#crypt_state{si  = NewSI, sj  = NewByte}, <<Result/binary, NewByte:8>>).
+    encrypt(Header, C#crypt_state{i  = NewSI, j  = NewByte}, <<Result/binary, NewByte:8>>).
 
 decrypt(Header, Key) ->
     decrypt(Header, Key, <<>>).
 decrypt(<<>>, Key, Result) -> {Result, Key};
-decrypt(<<OldByte:8?I, Header/binary>>, #crypt_state{ri = RI, rj = RJ, key = K} = C, Result) ->
+decrypt(<<OldByte:8?I, Header/binary>>, #crypt_state{i = RI, j = RJ, key = K} = C, Result) ->
     NewByte = (lists:nth(RI+1, K) bxor (OldByte - RJ)) band 255,
     NewRI   = (RI + 1) rem ?K,
-    decrypt(Header, C#crypt_state{ri = NewRI, rj = OldByte}, <<Result/binary, NewByte:8>>).
+    decrypt(Header, C#crypt_state{i = NewRI, j = OldByte}, <<Result/binary, NewByte:8>>).
 
 encryption_key(A) ->
     [{_, K}] = ets:lookup(connected_clients, A),

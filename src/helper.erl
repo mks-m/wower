@@ -86,6 +86,7 @@ create_chars() ->
                                    position_x     = -4845.324, 
                                    position_y     = -864.4747, 
                                    position_z     = 501.92309, 
+                                   orientation    = 0.0,
                                    guild_id       = 0, 
                                    general_flags  = 16#10A00040, 
                                    at_login_flags = 0}).

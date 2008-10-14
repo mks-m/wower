@@ -1,5 +1,13 @@
 -module(char_helper).
 -compile(export_all).
+-import(common_helper, [do/1]).
+
+-include("database_records.hrl").
+-include_lib("stdlib/include/qlc.hrl").
+
+find(Id) ->
+    [Char] = do(qlc:q([X || X <- mnesia:table(char), X#char.id =:= Id])),
+    Char.
 
 equipment(_) ->
     lists:seq(1,20).

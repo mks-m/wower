@@ -6,7 +6,11 @@
          smsg_realm_split/0,
          cmsg_ping/1,
          smsg_pong/1,
-         smsg_whois/1]).
+         smsg_whois/1,
+         msg_set_dungeon_difficulty/1,
+         smsg_login_verify_world/5,
+         cmsg_player_login/1,
+         smsg_account_data_times/0]).
 
 -include("database_records.hrl").
 
@@ -73,6 +77,26 @@ smsg_whois(Response) ->
     Opcode = realm_opcodes:c(smsg_whois),
     response(Opcode, <<Response/bytes, 0?B>>).
 
+msg_set_dungeon_difficulty(-1) ->
+    Opcode = realm_opcodes:c(smsg_whois),
+    response(Opcode, <<0?L, 1?L?IN, 0?L>>);
+msg_set_dungeon_difficulty(Difficulty) ->
+    Opcode = realm_opcodes:c(smsg_whois),
+    response(Opcode, <<Difficulty?L?IN>>).
+
+smsg_login_verify_world(M, X, Y, Z, O) ->
+    Opcode = realm_opcodes:c(smsg_login_verify_world),
+    response(Opcode, <<M?f, X?f, Y?f, Z?f, O?f>>).
+
+cmsg_player_login(<<CharId?L?IN, 0?L>>) ->
+    {ok, CharId};
+cmsg_player_login(_) ->
+    no.
+
+smsg_account_data_times() ->
+    Opcode = realm_opcodes:c(smsg_account_data_times),
+    response(Opcode, <<0:1024>>).
+
 %% Internal use only
 
 cmsg_auth_session_extract(<<0?B, Rest/bytes>>, Account) ->
@@ -88,7 +112,7 @@ smsg_char_enum_build([], Ready) ->
 smsg_char_enum_build([Char|Chars], Ready) ->
     C = 
     <<Ready/binary,
-      (random:uniform(16#FFFFFFFF))?L, 0?L,        % guid 
+      (Char#char.id)?L?IN, 0?L,                    % guid 
       (list_to_binary(Char#char.name))/binary, 0?B,% char name
       (Char#char.player_bytes)/binary,             % 8 bytes: race, class, gender, skin, face,  
                                                    %          hair style, hair color, facial hair

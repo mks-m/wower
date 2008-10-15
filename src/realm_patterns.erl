@@ -3,14 +3,8 @@
          cmsg_auth_session/1, 
          smsg_auth_response/0,
          smsg_char_enum/2,
-         smsg_realm_split/0,
          cmsg_ping/1,
-         smsg_pong/1,
-         smsg_whois/1,
-         msg_set_dungeon_difficulty/1,
-         smsg_login_verify_world/5,
-         cmsg_player_login/1,
-         smsg_account_data_times/0]).
+         cmsg_player_login/1]).
 
 -include("database_records.hrl").
 
@@ -49,53 +43,20 @@ cmsg_auth_session(_) ->
     no.
 
 smsg_auth_response() ->
-    Opcode = realm_opcodes:c(smsg_auth_response),
-    Packet = <<12?B, 0?L, 0?B, 0?L, 2?B>>,
-    response(Opcode, Packet).
+    <<12?B, 0?L, 0?B, 0?L, 2?B>>.
 
 smsg_char_enum(AccId, RealmId) ->
-    Opcode = realm_opcodes:c(smsg_char_enum),
     Chars  = realm_helper:chars(AccId, RealmId),
     CharB  = smsg_char_enum_build(Chars),
-    Packet = <<(length(Chars))?B, CharB/binary>>,
-    response(Opcode, Packet).
-
-smsg_realm_split() ->
-    Opcode = realm_opcodes:c(smsg_realm_split),
-    Date   = list_to_binary("01/01/01"),
-    Packet = <<16#FFFFFFFF?L, 0?L, Date/binary, 0?B>>,
-    response(Opcode, Packet).
+    <<(length(Chars))?B, CharB/binary>>.
 
 cmsg_ping(<<Sequence?L?IN, Latency?L?IN>>) ->
     {Sequence, Latency}.
-
-smsg_pong(Sequence) ->
-    Opcode = realm_opcodes:c(smsg_pong),
-    response(Opcode, <<Sequence?L?IN>>).
-
-smsg_whois(Response) ->
-    Opcode = realm_opcodes:c(smsg_whois),
-    response(Opcode, <<Response/bytes, 0?B>>).
-
-msg_set_dungeon_difficulty(-1) ->
-    Opcode = realm_opcodes:c(smsg_whois),
-    response(Opcode, <<0?L, 1?L?IN, 0?L>>);
-msg_set_dungeon_difficulty(Difficulty) ->
-    Opcode = realm_opcodes:c(smsg_whois),
-    response(Opcode, <<Difficulty?L?IN>>).
-
-smsg_login_verify_world(M, X, Y, Z, O) ->
-    Opcode = realm_opcodes:c(smsg_login_verify_world),
-    response(Opcode, <<M?f, X?f, Y?f, Z?f, O?f>>).
 
 cmsg_player_login(<<CharId?L?IN, 0?L>>) ->
     {ok, CharId};
 cmsg_player_login(_) ->
     no.
-
-smsg_account_data_times() ->
-    Opcode = realm_opcodes:c(smsg_account_data_times),
-    response(Opcode, <<0:1024>>).
 
 %% Internal use only
 
@@ -139,6 +100,3 @@ smsg_char_enum_equip(CharId) ->
 smsg_char_enum_equip([], Ready) -> Ready;
 smsg_char_enum_equip([_|Items], Ready) ->
     smsg_char_enum_equip(Items, <<Ready/binary, 0?L?IN, 0?B, 0?L?IN>>).
-
-response(Opcode, Packet) ->
-    {<<(size(Packet)+2)?W?NI, Opcode?W?IN>>, Packet}.

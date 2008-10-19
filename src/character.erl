@@ -55,6 +55,11 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         ok = verify_world(S, Char),
         ok = send_account_data(S),
         ok = set_rest_start(S),
+        ok = set_tutorial_flags(S),
+        ok = send_spells_and_cooldowns(S),
+        ok = send_action_buttons(S),
+        ok = send_factions(S),
+        ok = send_timespeed(S),
         in_world(State, Char);
     
     {R, Handler, Data} ->
@@ -101,14 +106,27 @@ send_account_data(S) ->
     ok.
 
 set_rest_start(S) ->
-    {Y, Mo, Dm} = erlang:date(),
-    {H, Mi, _} = erlang:time(),
-    Dw = calendar:day_of_the_week(Y, Mo, Dm),
-    GameTime = Mi band 16#3F,
-    GameTime = GameTime bor (H*64 band 16#7C0),
-    GameTime = GameTime bor (Dw*2048 band 16#3800),
-    GameTime = GameTime bor ((Dm - 1)*16384 band 16#FC000),
-    GameTime = GameTime bor ((Mo - 1)*1048576 band 16#F00000),
-    GameTime = GameTime bor ((Y - 2000)*16777216 band 16#1F000000),
-    S ! { self(), smsg_set_rest_start, <<GameTime?L?IN>>},
+    GameTime = common_helper:game_time(common_helper:now()),
+    S ! {self(), smsg_set_rest_start, <<GameTime?L?IN>>},
+    ok.
+
+set_tutorial_flags(S) ->
+    S ! {self(), smsg_tutorial_flags, <<0:256>>},
+    ok.
+
+send_spells_and_cooldowns(S) ->
+    S ! {self(), smsg_initial_spells, <<0?B, 0?W, 0?W>>},
+    ok.
+
+send_action_buttons(S) ->
+    S ! {self(), smsg_action_buttons, <<>>},
+    ok.
+
+send_factions(S) ->
+    S ! {self(), smsg_initialize_factions, <<128?L?IN, 0:5120>>},
+    ok.
+
+send_timespeed(S) ->
+    GameTime = common_helper:game_time(common_helper:now()),
+    S ! {self(), smsg_login_settimespeed, <<GameTime?L?IN, (0.0166666669777748)?f>>},
     ok.

@@ -61,6 +61,7 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         ok = send_factions(S),
         ok = send_timespeed(S),
         ok = send_status(S),
+        ok = send_self(S, Char),
         in_world(State, Char);
     
     {R, Handler, Data} ->
@@ -134,4 +135,39 @@ send_timespeed(S) ->
 
 send_status(S) ->
     S ! {self(), smsg_feature_system_status, <<2?B, 0?B>>},
+    ok.
+
+send_self(S, Char) ->
+    GameTime = common_helper:game_time(common_helper:now()),
+    Update = <<1?L,                      % blocks count
+               3?B,                      % create self
+                
+               255?B,                    % guid packing mask
+               (Char#char.id)?L?IN, 0?L, % player guid
+               4?B,                      % object type player
+
+               16#61?B,                  % update flags
+               0?L,                      % move flags
+               0?W,                      % unknown flags
+
+               GameTime?L?IN,            % current time
+
+               (Char#char.position_x)?f, % position x
+               (Char#char.position_y)?f, % position y
+               (Char#char.position_z)?f, % position z
+               (Char#char.orientation)?f,% orientation
+
+               0?L,                      % unknown
+
+               2.5?f,                    % walk speed
+               2.5?f,                    % walk back speed
+               7?f,                      % run speed
+               4.5?f,                    % run back speed
+               4.722222?f,               % swim speed
+               2.5?f,                    % swim back speed
+               7?f,                      % fly speed
+               4.5?f,                    % fly back speed
+               3.141593?f                % turn speed
+               >>,
+    S ! {self(), smsg_update_object, Update},
     ok.

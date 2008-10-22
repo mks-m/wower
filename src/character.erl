@@ -60,6 +60,7 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         ok = send_action_buttons(S),
         ok = send_factions(S),
         ok = send_timespeed(S),
+        ok = send_status(S),
         in_world(State, Char);
     
     {R, Handler, Data} ->
@@ -129,4 +130,8 @@ send_factions(S) ->
 send_timespeed(S) ->
     GameTime = common_helper:game_time(common_helper:now()),
     S ! {self(), smsg_login_settimespeed, <<GameTime?L?IN, (0.0166666669777748)?f>>},
+    ok.
+
+send_status(S) ->
+    S ! {self(), smsg_feature_system_status, <<2?B, 0?B>>},
     ok.

@@ -8,7 +8,7 @@
 -define(I, /unsigned-little-integer).
 -define(O, /unsigned-big-integer).
 -define(b,  /bytes).                   % that's for plain text
--define(f,  /float-little).            % float values obviously
+-define(f,  :32/float-little).         % float values obviously
 -define(SH, :160?I).                   % SH is for sha1
 -define(Q,   :64?I).                   % uint64 - Q for quad
 -define(L,   :32?I).                   % uint32 - L for long
@@ -137,7 +137,7 @@ send_status(S) ->
 
 send_self(S, Char) ->
     GameTime = common_helper:game_time(common_helper:now()),
-    <<RCG:24/binary, SFHsHcFh/binary>> = Char#char.player_bytes, 
+    <<RCG:3/binary, SFHsHc:4/binary, Fh:8>> = Char#char.player_bytes, 
     Update = <<1?L,                      % blocks count
                3?B,                      % create self
                 
@@ -145,9 +145,9 @@ send_self(S, Char) ->
                (Char#char.id)?L, 0?L,    % player guid
                4?B,                      % object type player
 
-               16#61?B,                  % update flags
+               (64 bor 32 bor 1)?B,      % update flags
                0?L,                      % move flags
-               0?W,                      % unknown flags
+               0?B,                      % unknown
 
                GameTime?L,               % current time
 
@@ -159,14 +159,14 @@ send_self(S, Char) ->
                0?L,                      % unknown
 
                2.5?f,                    % walk speed
-               2.5?f,                    % walk back speed
                7?f,                      % run speed
-               4.5?f,                    % run back speed
+               4.5?f,                    % walk back speed
                4.722222?f,               % swim speed
                2.5?f,                    % swim back speed
                7?f,                      % fly speed
                4.5?f,                    % fly back speed
                3.141593?f,               % turn speed
+
                8?B,                      % length of bitmask (x * 32)
                23?B, 0?B, 64?B, 16?B,    % mask 1
                28?B, 0?B, 0?B, 0?B,      % mask 2
@@ -174,9 +174,11 @@ send_self(S, Char) ->
                0?B, 0?B, 0?B, 0?B,       % mask 4
                0?B, 0?B, 0?B, 1?B,       % mask 5
                16?B, 0?B, 0?B, 0?B,      % mask 6
-               0?L,                      % mask 7
+               0?B, 0?B, 0?B, 0?B,       % mask 7
                0?B, 128?B, 1?B, 0?B,     % mask 8
-               (Char#char.id)?L, 0?L,    % player guid
+
+               (Char#char.id)?L,         % player guid 1
+               0?L,                      % player guid 2
                25?L,                     % player type
                1.0?f,                    % scale
                1000?L,                   % health
@@ -186,8 +188,8 @@ send_self(S, Char) ->
                RCG/binary, 0?B,          % race, class, gender, power
                60?L,                     % display ID
                0?L,                      % dynamic flag (0 = alive)
-               SFHsHcFh/binary,          % skin, face, hair style, hair color facial hair
-               238?B, 0?B, 2?B           % unknown
+               SFHsHc/binary,            % skin, face, hair style, hair color
+               Fh?B, 238?B, 0?B, 2?B     % facial hair, unknown
                >>,
     S ! {self(), smsg_update_object, Update},
     ok.

@@ -166,6 +166,7 @@ send_self(S, Char) ->
                7?f,                      % fly speed
                4.5?f,                    % fly back speed
                3.141593?f,               % turn speed
+               1.0?f,                    % pitch speed
 
                8?B,                      % length of bitmask (x * 32)
                2#00010111, 2#00000000,   % mask 1 / 1 [1, 2, 3, 5]

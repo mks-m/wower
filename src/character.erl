@@ -5,17 +5,15 @@
 -include("database_records.hrl").
 
 % network defines
--define(IN, /unsigned-little-integer).
--define(NI, /unsigned-big-integer).
--define(b,  /bytes).
--define(f,  /float-little).
--define(QQ, :256).
--define(SH, :160).
--define(DQ, :128).
--define(Q,   :64).
--define(L,   :32).
--define(W,   :16).
--define(B,    :8).
+-define(I, /unsigned-little-integer).
+-define(O, /unsigned-big-integer).
+-define(b,  /bytes).                   % that's for plain text
+-define(f,  /float-little).            % float values obviously
+-define(SH, :160?I).                   % SH is for sha1
+-define(Q,   :64?I).                   % uint64 - Q for quad
+-define(L,   :32?I).                   % uint32 - L for long
+-define(W,   :16?I).                   % uint16 - W for word
+-define(B,    :8).                     % byte (doesn't need to be endianated)
 
 init(State) ->
     not_in_world(State).
@@ -24,7 +22,7 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
     receive
     {R, cmsg_ping, D} ->
         {Sequence, Latency} = realm_patterns:cmsg_ping(D),
-        S ! {self(), smsg_pong, <<Sequence?L?IN>>},
+        S ! {self(), smsg_pong, <<Sequence?L>>},
         not_in_world(State#client_state{latency=Latency});
         
     {R, cmsg_char_enum, _} ->
@@ -77,7 +75,7 @@ in_world(#client_state{receiver=R, sender=S}=State, _Char) ->
     receive
     {R, cmsg_ping, D} ->
         {Sequence, Latency} = realm_patterns:cmsg_ping(D),
-        S ! {self(), smsg_pong, <<Sequence?L?IN>>},
+        S ! {self(), smsg_pong, <<Sequence?L>>},
         not_in_world(State#client_state{latency=Latency});
     
     {R, Handler, Data} ->
@@ -90,10 +88,10 @@ in_world(#client_state{receiver=R, sender=S}=State, _Char) ->
     end.
 
 set_dungeon_difficulty(S, -1) ->
-    S ! {self(), msg_set_dungeon_difficulty, <<0?L, 1?L?IN, 0?L>>},
+    S ! {self(), msg_set_dungeon_difficulty, <<0?L, 1?L, 0?L>>},
     ok;
 set_dungeon_difficulty(S, Difficulty) ->
-    S ! {self(), msg_set_dungeon_difficulty, <<Difficulty?L?IN>>},
+    S ! {self(), msg_set_dungeon_difficulty, <<Difficulty?L>>},
     ok.
 
 verify_world(S, Char) ->
@@ -109,7 +107,7 @@ send_account_data(S) ->
 
 set_rest_start(S) ->
     GameTime = common_helper:game_time(common_helper:now()),
-    S ! {self(), smsg_set_rest_start, <<GameTime?L?IN>>},
+    S ! {self(), smsg_set_rest_start, <<GameTime?L>>},
     ok.
 
 set_tutorial_flags(S) ->
@@ -125,12 +123,12 @@ send_action_buttons(S) ->
     ok.
 
 send_factions(S) ->
-    S ! {self(), smsg_initialize_factions, <<128?L?IN, 0:5120>>},
+    S ! {self(), smsg_initialize_factions, <<128?L, 0:5120>>},
     ok.
 
 send_timespeed(S) ->
     GameTime = common_helper:game_time(common_helper:now()),
-    S ! {self(), smsg_login_settimespeed, <<GameTime?L?IN, (0.0166666669777748)?f>>},
+    S ! {self(), smsg_login_settimespeed, <<GameTime?L, (0.0166666669777748)?f>>},
     ok.
 
 send_status(S) ->
@@ -143,14 +141,14 @@ send_self(S, Char) ->
                3?B,                      % create self
                 
                255?B,                    % guid packing mask
-               (Char#char.id)?L?IN, 0?L, % player guid
+               (Char#char.id)?L, 0?L,    % player guid
                4?B,                      % object type player
 
                16#61?B,                  % update flags
                0?L,                      % move flags
                0?W,                      % unknown flags
 
-               GameTime?L?IN,            % current time
+               GameTime?L,               % current time
 
                (Char#char.position_x)?f, % position x
                (Char#char.position_y)?f, % position y

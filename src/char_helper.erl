@@ -65,3 +65,4 @@ power(happiness)   -> 4;
 power(rune)        -> 5;
 power(runic_power) -> 6;
 power(health)      -> -2.
+

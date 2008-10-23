@@ -11,7 +11,7 @@ now() ->
     {H, Mi, S} = erlang:time(),
     {Y, Mo, Dm, H, Mi, S}.
 
-game_time({Y, Mo, Dm, H, Mi, S}) ->
+game_time({Y, Mo, Dm, H, Mi, _}) ->
     Dw = calendar:day_of_the_week(Y, Mo, Dm),
     GameTime = (((((Mi band 16#3F) bor 
                    (H*64 band 16#7C0)) bor 

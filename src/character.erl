@@ -137,6 +137,7 @@ send_status(S) ->
 
 send_self(S, Char) ->
     GameTime = common_helper:game_time(common_helper:now()),
+    <<RCG:24/binary, SFHsHcFh/binary>> = Char#char.player_bytes, 
     Update = <<1?L,                      % blocks count
                3?B,                      % create self
                 
@@ -165,7 +166,28 @@ send_self(S, Char) ->
                2.5?f,                    % swim back speed
                7?f,                      % fly speed
                4.5?f,                    % fly back speed
-               3.141593?f                % turn speed
+               3.141593?f,               % turn speed
+               8?B,                      % length of bitmask (x * 32)
+               23?B, 0?B, 64?B, 16?B,    % mask 1
+               28?B, 0?B, 0?B, 0?B,      % mask 2
+               0?B, 0?B, 0?B, 0?B,       % mask 3
+               0?B, 0?B, 0?B, 0?B,       % mask 4
+               0?B, 0?B, 0?B, 1?B,       % mask 5
+               16?B, 0?B, 0?B, 0?B,      % mask 6
+               0?L,                      % mask 7
+               0?B, 128?B, 1?B, 0?B,     % mask 8
+               (Char#char.id)?L, 0?L,    % player guid
+               25?L,                     % player type
+               1.0?f,                    % scale
+               1000?L,                   % health
+               1000?L,                   % max health
+               (Char#char.level)?L,
+               4?L,                      % factiontemplate
+               RCG/binary, 0?B,          % race, class, gender, power
+               60?L,                     % display ID
+               0?L,                      % dynamic flag (0 = alive)
+               SFHsHcFh/binary,          % skin, face, hair style, hair color facial hair
+               238?B, 0?B, 2?B           % unknown
                >>,
     S ! {self(), smsg_update_object, Update},
     ok.

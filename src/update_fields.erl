@@ -1,12 +1,54 @@
 -module(update_fields).
 -compile(export_all).
+-import(common_helper, [min/2, max/2]).
+
+map(object) -> [];
+map(unit) -> [object];
+map(player) -> [object, unit];
+map(item) -> [object];
+map(container) -> [object, item];
+map(dynamic_object) -> [object];
+map(game_object) -> [object];
+map(corpse) -> [object].
+
+% list of {type, flag} tuples
+pack(List) -> pack(List, <<>>).
+
+pack([], Ready) -> Ready;
+pack([{Type, Flag}|Rest], Ready) ->
+    Bit   = ?MODULE:Type(Flag) - 1,
+    Size  = size(Ready) * 8,
+    switch(Bit, Size, Rest, Ready).
+
+switch(Bit, Size, Rest, Ready) when Bit >= Size ->
+    BB       = (Bit - Size) rem 8,
+    Zeros    = ((Bit - Size) div 8) * 8,
+    NewReady = <<Ready/binary, 
+                 0:Zeros/integer, 
+                 (1 bsl BB):8/integer>>,
+    pack(Rest, NewReady);
+switch(Bit, _, Rest, Ready) ->
+    ByteNum  = max(Bit div 8, 0),
+    <<PreByte:ByteNum/binary, 
+      Byte:8/integer, 
+      PostByte/binary>> = Ready,
+    BB       = Bit - (Bit div 8) * 8,
+    NewByte  = Byte bor (1 bsl BB),
+    NewReady = <<PreByte/binary, 
+                 NewByte:8/integer, 
+                 PostByte/binary>>,
+    pack(Rest, NewReady).
+
 
 object(guid) -> 1;
 object(guid_2) -> 2;
 object(type) -> 3;
 object(entry) -> 4;
 object(scale_x) -> 5;
-object(padding) -> 6.
+object(padding) -> 6;
+object(Any) ->
+    io:format("wrong update_field for object: ~p~n", [Any]),
+    0.
 
 unit(charm) -> 7;
 unit(charm_2) -> 8;
@@ -149,7 +191,10 @@ unit(power_cost_multiplier_6) -> 144;
 unit(power_cost_multiplier_7) -> 145;
 unit(maxhealthmodifier) -> 146;
 unit(hoverheight) -> 147;
-unit(padding) -> 148.
+unit(padding) -> 148;
+unit(Any) ->
+    io:format("wrong update_field for unit: ~p~n", [Any]),
+    0.
 
 player(duel_arbiter) -> 149;
 player(duel_arbiter_2) -> 150;
@@ -1702,7 +1747,10 @@ player(glyphs_1_5) -> 1696;
 player(glyphs_1_6) -> 1697;
 player(glyphs_1_7) -> 1698;
 player(glyphs_1_8) -> 1699;
-player(glyphs_enabled) -> 1700.
+player(glyphs_enabled) -> 1700;
+player(Any) ->
+    io:format("wrong update_field for player: ~p~n", [Any]),
+    0.
 
 item(owner) -> 7;
 item(owner_2) -> 8;
@@ -1761,7 +1809,10 @@ item(random_properties_id) -> 60;
 item(item_text_id) -> 61;
 item(durability) -> 62;
 item(maxdurability) -> 63;
-item(pad) -> 64.
+item(pad) -> 64;
+item(Any) ->
+    io:format("wrong update_field for item: ~p~n", [Any]),
+    0.
 
 container(num_slots) -> 65;
 container(align_pad) -> 66;
@@ -1836,7 +1887,10 @@ container(slot_1_68) -> 134;
 container(slot_1_69) -> 135;
 container(slot_1_70) -> 136;
 container(slot_1_71) -> 137;
-container(slot_1_72) -> 138.
+container(slot_1_72) -> 138;
+container(Any) ->
+    io:format("wrong update_field for container: ~p~n", [Any]),
+    0.
 
 dynamic_object(caster) -> 7;
 dynamic_object(caster_2) -> 8;
@@ -1847,7 +1901,10 @@ dynamic_object(pos_x) -> 12;
 dynamic_object(pos_y) -> 13;
 dynamic_object(pos_z) -> 14;
 dynamic_object(facing) -> 15;
-dynamic_object(casttime) -> 16.
+dynamic_object(casttime) -> 16;
+dynamic_object(Any) ->
+    io:format("wrong update_field for dynamic_object: ~p~n", [Any]),
+    0.
 
 game_object(object_field_created_by) -> 7;
 game_object(object_field_created_by_2) -> 8;
@@ -1866,7 +1923,10 @@ game_object(facing) -> 20;
 game_object(dynamic) -> 21;
 game_object(faction) -> 22;
 game_object(level) -> 23;
-game_object(bytes_1) -> 24.
+game_object(bytes_1) -> 24;
+game_object(Any) ->
+    io:format("wrong update_field for game_object: ~p~n", [Any]),
+    0.
 
 corpse(owner) -> 7;
 corpse(owner_2) -> 8;
@@ -1901,4 +1961,7 @@ corpse(bytes_2) -> 36;
 corpse(guild) -> 37;
 corpse(flags) -> 38;
 corpse(dynamic_flags) -> 39;
-corpse(pad) -> 40.
+corpse(pad) -> 40;
+corpse(Any) ->
+    io:format("wrong update_field for corpse: ~p~n", [Any]),
+    0.

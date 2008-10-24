@@ -1,5 +1,5 @@
 -module(common_helper).
--export([do/1, now/0, game_time/1]).
+-export([do/1, now/0, game_time/1, min/2, max/2]).
 
 do(Q) ->
     F = fun() -> qlc:e(Q) end,
@@ -20,3 +20,9 @@ game_time({Y, Mo, Dm, H, Mi, _}) ->
                    ((Mo - 1)*1048576 band 16#F00000)) bor 
                    ((Y - 2000)*16777216 band 16#1F000000),
     GameTime.
+
+min(X, Y) when X < Y -> X;
+min(_, Y) -> Y.
+
+max(X, Y) when X > Y -> X;
+max(_, Y) -> Y.

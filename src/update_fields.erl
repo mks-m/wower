@@ -14,7 +14,9 @@ map(corpse) -> [object].
 % list of {type, flag} tuples
 pack(List) -> pack(List, <<>>).
 
-pack([], Ready) -> Ready;
+pack([], Ready) ->
+    Tail = ((4 - size(Ready) rem 4) rem 4) * 8,
+    <<Ready/binary, 0:Tail/integer>>;
 pack([{Type, Flag}|Rest], Ready) ->
     Bit   = ?MODULE:Type(Flag) - 1,
     Size  = size(Ready) * 8,

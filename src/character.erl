@@ -137,7 +137,7 @@ send_status(S) ->
 
 send_self(S, Char) ->
     GameTime = common_helper:game_time(common_helper:now()),
-    <<RCG:3/binary, SFHsHc:4/binary, Fh:8>> = Char#char.player_bytes,
+    <<UB:4/binary, PB1:4/binary, PB2:4/binary>> = Char#char.player_bytes,
     BitMask = update_fields:pack([{object, guid},
                                   {object, guid_2},
                                   {object, type},
@@ -146,11 +146,11 @@ send_self(S, Char) ->
                                   {unit, maxhealth},
                                   {unit, level},
                                   {unit, factiontemplate},
+                                  {unit, bytes_0},
                                   {player, player_bytes},
-                                  {},
-                                  {},
-                                  {},
-                                  {}]),
+                                  {unit, displayid},
+                                  {unit, dynamic_flags},
+                                  {player, player_bytes_2}]),
     Update = <<1?L,                      % blocks count
                3?B,                      % create self
                 
@@ -191,11 +191,11 @@ send_self(S, Char) ->
                1000?L,                   % max health
                (Char#char.level)?L,
                4?L,                      % factiontemplate
-               RCG/binary, 0?B,          % race, class, gender, power
+               UB/binary,                % race, class, gender, power
                60?L,                     % display ID
                0?L,                      % dynamic flag (0 = alive)
-               SFHsHc/binary,            % skin, face, hair style, hair color
-               Fh?B, 238?B, 0?B, 2?B     % facial hair, unknown
+               PB1/binary,               % skin, face, hair style, hair color
+               PB2/binary                % facial hair, unknown
                >>,
     S ! {self(), smsg_update_object, Update},
     ok.

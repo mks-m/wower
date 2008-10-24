@@ -43,7 +43,7 @@ cmsg_auth_session(_) ->
     no.
 
 smsg_auth_response() ->
-    <<12?B, 0?L, 0?B, 0?L, 2?B>>.
+    <<12?B, 0?L, 0?B, 0?L, 1?B>>.
 
 smsg_char_enum(AccId, RealmId) ->
     Chars  = realm_helper:chars(AccId, RealmId),
@@ -71,11 +71,12 @@ smsg_char_enum_build(Chars) ->
 smsg_char_enum_build([], Ready) ->
     Ready;
 smsg_char_enum_build([Char|Chars], Ready) ->
+    <<PB1:3/binary, _:8/integer, PB2:5/binary, _/binary>> = Char#char.player_bytes,
     C = 
     <<Ready/binary,
       (Char#char.id)?L?IN, 0?L,                    % guid 
       (list_to_binary(Char#char.name))/binary, 0?B,% char name
-      (Char#char.player_bytes)/binary,             % 8 bytes: race, class, gender, skin, face,  
+      PB1/binary, PB2/binary,                      % 8 bytes: race, class, gender, skin, face,  
                                                    %          hair style, hair color, facial hair
       (Char#char.level)?B,                         % level
       (Char#char.zone_id)?L?IN,                    % zone id

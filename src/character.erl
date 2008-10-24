@@ -137,7 +137,20 @@ send_status(S) ->
 
 send_self(S, Char) ->
     GameTime = common_helper:game_time(common_helper:now()),
-    <<RCG:3/binary, SFHsHc:4/binary, Fh:8>> = Char#char.player_bytes, 
+    <<RCG:3/binary, SFHsHc:4/binary, Fh:8>> = Char#char.player_bytes,
+    BitMask = update_fields:pack([{object, guid},
+                                  {object, guid_2},
+                                  {object, type},
+                                  {object, scale_x},
+                                  {unit, health},
+                                  {unit, maxhealth},
+                                  {unit, level},
+                                  {unit, factiontemplate},
+                                  {player, player_bytes},
+                                  {},
+                                  {},
+                                  {},
+                                  {}]),
     Update = <<1?L,                      % blocks count
                3?B,                      % create self
                 
@@ -168,26 +181,10 @@ send_self(S, Char) ->
                3.141593?f,               % turn speed
                1.0?f,                    % pitch speed
 
-               8?B,                      % length of bitmask (x * 32)
-               2#00010111, 2#00000000,   % mask 1 / 1 [1, 2, 3, 5]
-               2#01000000, 2#00010000,   % mask 1 / 2 [23, 29]
-               2#00011100, 2#00000000,   % mask 2 / 1 [35, 36, 37]
-               2#00000000, 2#00000000,   % mask 2 / 2
-               2#00000000, 2#00000000,   % mask 3 / 1 
-               2#00000000, 2#00000000,   % mask 3 / 2
-               2#00000000, 2#00000000,   % mask 4 / 1 
-               2#00000000, 2#00000000,   % mask 4 / 2
-               2#00000000, 2#00000000,   % mask 5 / 1 
-               2#00000000, 2#00000001,   % mask 5 / 2 [153]
-               2#00010000, 2#00000000,   % mask 6 / 1 [165]
-               2#00000000, 2#00000000,   % mask 6 / 2
-               2#00000000, 2#00000000,   % mask 7 / 1 
-               2#00000000, 2#00000000,   % mask 7 / 2
-               2#00000000, 2#10000000,   % mask 8 / 1 [240]
-               2#00000001, 2#00000000,   % mask 8 / 2 [241]
+               (size(BitMask) div 4)?B,  % number of long's
+               BitMask/binary,           % bitmask
 
-               (Char#char.id)?L,         % player guid 1
-               0?L,                      % player guid 2
+               (Char#char.id)?L, 0?L,    % player guid
                25?L,                     % player type
                1.0?f,                    % scale
                1000?L,                   % health

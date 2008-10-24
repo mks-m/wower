@@ -79,7 +79,7 @@ create_chars() ->
                                    account_id     = 1, 
                                    realm_id       = 1, 
                                    name           = "Moo", 
-                                   player_bytes   = <<3:8, 1:8, 0:8, 8:8, 9:8, 4:8, 0:8, 1:8>>,
+                                   player_bytes   = <<3, 1, 0, 8, 9, 4, 0, 1>>,
                                    level          = 1,
                                    zone_id        = 1537,
                                    map_id         = 0,

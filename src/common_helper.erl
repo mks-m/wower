@@ -1,17 +1,14 @@
 -module(common_helper).
--export([do/1, now/0, game_time/1, min/2, max/2]).
+-export([do/1, game_time/0, ms_time/0, min/2, max/2]).
 
 do(Q) ->
     F = fun() -> qlc:e(Q) end,
     {atomic, Val} = mnesia:transaction(F),
     Val.
 
-now() ->
+game_time() ->
     {Y, Mo, Dm} = erlang:date(),
-    {H, Mi, S} = erlang:time(),
-    {Y, Mo, Dm, H, Mi, S}.
-
-game_time({Y, Mo, Dm, H, Mi, _}) ->
+    {H, Mi, _} = erlang:time(),
     Dw = calendar:day_of_the_week(Y, Mo, Dm),
     GameTime = (((((Mi band 16#3F) bor 
                    (H*64 band 16#7C0)) bor 
@@ -20,6 +17,10 @@ game_time({Y, Mo, Dm, H, Mi, _}) ->
                    ((Mo - 1)*1048576 band 16#F00000)) bor 
                    ((Y - 2000)*16777216 band 16#1F000000),
     GameTime.
+
+ms_time() ->
+    {Mega, Seconds, Micro} = erlang:now(),
+    Mega * 1000 + Seconds + Micro div 1000.
 
 min(X, Y) when X < Y -> X;
 min(_, Y) -> Y.

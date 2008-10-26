@@ -106,7 +106,7 @@ send_account_data(S) ->
     ok.
 
 set_rest_start(S) ->
-    GameTime = common_helper:game_time(common_helper:now()),
+    GameTime = common_helper:game_time(),
     S ! {self(), smsg_set_rest_start, <<GameTime?L>>},
     ok.
 
@@ -127,7 +127,7 @@ send_factions(S) ->
     ok.
 
 send_timespeed(S) ->
-    GameTime = common_helper:game_time(common_helper:now()),
+    GameTime = common_helper:game_time(),
     S ! {self(), smsg_login_settimespeed, <<GameTime?L, (0.0166666669777748)?f>>},
     ok.
 
@@ -136,7 +136,7 @@ send_status(S) ->
     ok.
 
 send_self(S, Char) ->
-    GameTime = common_helper:game_time(common_helper:now()),
+    GameTime = common_helper:ms_time(),
     <<UB:4/binary, PB1:4/binary, PB2:4/binary>> = Char#char.player_bytes,
     BitMask = update_fields:pack([{object, guid},
                                   {object, guid_2},

@@ -138,7 +138,7 @@ send_status(S) ->
 send_self(S, Char) ->
     GameTime = common_helper:ms_time(),
     <<UB:4/binary, PB1:4/binary, PB2:4/binary>> = Char#char.player_bytes,
-    BitMask = update_fields:pack([{object, guid},
+    BitMask = update_fields:mask([{object, guid},
                                   {object, guid_2},
                                   {object, type},
                                   {object, scale_x},
@@ -160,7 +160,7 @@ send_self(S, Char) ->
 
                (64 bor 32 bor 1)?B,      % update flags
                0?L,                      % move flags
-               0?B,                      % unknown
+               0?W,                      % unknown
 
                GameTime?L,               % current time
 

@@ -12,12 +12,12 @@ map(game_object) -> [object];
 map(corpse) -> [object].
 
 % list of {type, flag} tuples
-pack(List) -> pack(List, <<>>).
+mask(List) -> mask(List, <<>>).
 
-pack([], Ready) ->
+mask([], Ready) ->
     Tail = ((4 - size(Ready) rem 4) rem 4) * 8,
     <<Ready/binary, 0:Tail/integer>>;
-pack([{Type, Flag}|Rest], Ready) ->
+mask([{Type, Flag}|Rest], Ready) ->
     Bit   = ?MODULE:Type(Flag) - 1,
     Size  = size(Ready) * 8,
     switch(Bit, Size, Rest, Ready).
@@ -28,7 +28,7 @@ switch(Bit, Size, Rest, Ready) when Bit >= Size ->
     NewReady = <<Ready/binary, 
                  0:Zeros/integer, 
                  (1 bsl BB):8/integer>>,
-    pack(Rest, NewReady);
+    mask(Rest, NewReady);
 switch(Bit, _, Rest, Ready) ->
     ByteNum  = max(Bit div 8, 0),
     <<PreByte:ByteNum/binary, 
@@ -39,8 +39,12 @@ switch(Bit, _, Rest, Ready) ->
     NewReady = <<PreByte/binary, 
                  NewByte:8/integer, 
                  PostByte/binary>>,
-    pack(Rest, NewReady).
+    mask(Rest, NewReady).
 
+test() ->
+    1 = size(mask([{object, guid}])) div 4,
+    18 = size(mask([{player, visible_item_17_0_7}, {object, guid}])) div 4,
+    ok.
 
 object(guid) -> 1;
 object(guid_2) -> 2;

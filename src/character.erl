@@ -169,7 +169,7 @@ send_self(S, Char) ->
                (Char#char.position_z)?f, % position z
                (Char#char.orientation)?f,% orientation
 
-               0?L,                      % unknown
+               0?L,                      % fall time
 
                2.5?f,                    % walk speed
                7?f,                      % run speed

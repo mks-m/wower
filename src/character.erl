@@ -60,6 +60,7 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         ok = send_timespeed(S),
         ok = send_status(S),
         ok = send_self(S, Char),
+        io:format("entering world loop~n"),
         in_world(State, Char);
     
     {R, Handler, Data} ->
@@ -71,20 +72,27 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         not_in_world(State)
     end.
 
-in_world(#client_state{receiver=R, sender=S}=State, _Char) ->
+in_world(#client_state{receiver=R, sender=S}=State, Char) ->
     receive
     {R, cmsg_ping, D} ->
         {Sequence, Latency} = realm_patterns:cmsg_ping(D),
         S ! {self(), smsg_pong, <<Sequence?L>>},
-        not_in_world(State#client_state{latency=Latency});
+        in_world(State#client_state{latency=Latency}, Char);
+    
+    {R, cmsg_name_query, _} ->
+        Response = <<(Char#char.id)?L, 0?L,
+                     (Char#char.name)?b, 0?B,
+                     0?B, 1?B, 1?B, 1?B, 0?B>>,
+        S ! {self(), smsg_name_query_response, Response},
+        in_world(State, Char);
     
     {R, Handler, Data} ->
         io:format("unhandled: ~p~n~p~n", [Handler, Data]),
-        not_in_world(State);
+        in_world(State, Char);
     
     Any ->
         io:format("unauthorized: ~p~n", [Any]),
-        not_in_world(State)
+        in_world(State, Char)
     end.
 
 set_dungeon_difficulty(S, -1) ->

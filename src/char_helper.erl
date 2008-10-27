@@ -13,7 +13,7 @@ equipment(_) ->
     lists:seq(1,20).
 
 unit_bytes(#char{race = R, class = C, gender = G, power = P}) ->
-    <<R:8, C:8, G:8, P:8>>.
+    <<(race(R)):8, (class(C)):8, (gender(G)):8, (power(P)):8>>.
 
 player_bytes1(#char{skin = S, face = F, hair_style = Hs, hair_color = Hc}) ->
     <<S:8, F:8, Hs:8, Hc:8>>.

@@ -71,13 +71,18 @@ smsg_char_enum_build(Chars) ->
 smsg_char_enum_build([], Ready) ->
     Ready;
 smsg_char_enum_build([Char|Chars], Ready) ->
-    <<PB1:3/binary, _:8/integer, PB2:5/binary, _/binary>> = Char#char.player_bytes,
     C = 
     <<Ready/binary,
       (Char#char.id)?L?IN, 0?L,                    % guid 
       (list_to_binary(Char#char.name))/binary, 0?B,% char name
-      PB1/binary, PB2/binary,                      % 8 bytes: race, class, gender, skin, face,  
-                                                   %          hair style, hair color, facial hair
+      (char_helper:race(Char#char.race))?B,        % race
+      (char_helper:class(Char#char.class))?B,      % class
+      (char_helper:gender(Char#char.gender))?B,    % gender
+      (Char#char.skin)?B,                          % skin
+      (Char#char.face)?B,                          % face
+      (Char#char.hair_style)?B,                    % hair style
+      (Char#char.hair_color)?B,                    % hair color
+      (Char#char.facial_hair)?B,                   % facial hair
       (Char#char.level)?B,                         % level
       (Char#char.zone_id)?L?IN,                    % zone id
       (Char#char.map_id)?L?IN,                     % map id

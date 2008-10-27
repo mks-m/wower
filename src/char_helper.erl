@@ -12,6 +12,15 @@ find(Id) ->
 equipment(_) ->
     lists:seq(1,20).
 
+unit_bytes(#char{race = R, class = C, gender = G, power = P}) ->
+    <<R:8, C:8, G:8, P:8>>.
+
+player_bytes1(#char{skin = S, face = F, hair_style = Hs, hair_color = Hc}) ->
+    <<S:8, F:8, Hs:8, Hc:8>>.
+
+player_bytes2(#char{facial_hair = F}) ->
+    <<F:8, 238:8, 0:8, 2:8>>.
+
 gender(male)   -> 0;
 gender(female) -> 1;
 gender(none)   -> 2.

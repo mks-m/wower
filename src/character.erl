@@ -145,7 +145,9 @@ send_status(S) ->
 
 send_self(S, Char) ->
     GameTime = common_helper:ms_time(),
-    <<UB:4/binary, PB1:4/binary, PB2:4/binary>> = Char#char.player_bytes,
+    UB = char_helper:unit_bytes(Char),
+    PB1 = char_helper:player_bytes1(Char),
+    PB2 = char_helper:player_bytes2(Char),
     BitMask = update_fields:mask([{object, guid},
                                   {object, guid_2},
                                   {object, type},

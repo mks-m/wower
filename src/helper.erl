@@ -79,9 +79,15 @@ create_chars() ->
                                    account_id     = 1, 
                                    realm_id       = 1, 
                                    name           = "Moo", 
-                                   player_bytes   = <<3,   1, 0, 0,   % race, class, gender, power 
-                                                      8,   9, 4, 0,   % skin, face, hs, hc
-                                                      1, 238, 0, 2>>, % fh, unk, bank, rest
+                                   race           = dwarf,
+                                   class          = warrior,
+                                   gender         = male,
+                                   power          = rage,
+                                   skin           = 8,
+                                   face           = 9,
+                                   hair_style     = 4,
+                                   hair_color     = 0,
+                                   facial_hair    = 1,
                                    level          = 1,
                                    zone_id        = 1537,
                                    map_id         = 0,

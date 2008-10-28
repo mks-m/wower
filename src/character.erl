@@ -152,14 +152,14 @@ send_self(S, Char) ->
                                   {object, guid_2},
                                   {object, type},
                                   {object, scale_x},
+                                  {unit, bytes_0},
                                   {unit, health},
                                   {unit, maxhealth},
                                   {unit, level},
                                   {unit, factiontemplate},
-                                  {unit, bytes_0},
-                                  {player, player_bytes},
                                   {unit, displayid},
                                   {unit, dynamic_flags},
+                                  {player, player_bytes},
                                   {player, player_bytes_2}]),
     Update = <<1?L,                      % blocks count
                3?B,                      % create self
@@ -197,11 +197,11 @@ send_self(S, Char) ->
                (Char#char.id)?L, 0?L,    % player guid
                25?L,                     % player type
                1.0?f,                    % scale
+               UB/binary,                % race, class, gender, power
                1000?L,                   % health
                1000?L,                   % max health
                (Char#char.level)?L,
                4?L,                      % factiontemplate
-               UB/binary,                % race, class, gender, power
                60?L,                     % display ID
                0?L,                      % dynamic flag (0 = alive)
                PB1/binary,               % skin, face, hair style, hair color

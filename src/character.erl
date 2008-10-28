@@ -4,6 +4,9 @@
 -include("realm_records.hrl").
 -include("database_records.hrl").
 
+-import(packet_helper, [make_cstring/1,
+                        read_cstring/1]).
+
 % network defines
 -define(I, /unsigned-little-integer).
 -define(O, /unsigned-big-integer).
@@ -46,6 +49,11 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
     {R, msg_query_guild_bank_text, _} ->
         not_in_world(State);
     
+    {R, cmsg_get_channel_member_count, Data} ->
+        {Name, _} = read_cstring(Data),
+        S ! {self(), smsg_channel_member_count, <<Name?b, 0?B, 0?B, 0?L>>},
+        not_in_world(State);
+    
     {R, cmsg_player_login, D} ->
         {ok, CharId} = realm_patterns:cmsg_player_login(D),
         Char = char_helper:find(CharId),
@@ -72,7 +80,7 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         not_in_world(State)
     end.
 
-in_world(#client_state{receiver=R, sender=S}=State, Char) ->
+in_world(#client_state{receiver=R, sender=S}=State, #char{}=Char) ->
     receive
     {R, cmsg_ping, D} ->
         {Sequence, Latency} = realm_patterns:cmsg_ping(D),
@@ -80,10 +88,16 @@ in_world(#client_state{receiver=R, sender=S}=State, Char) ->
         in_world(State#client_state{latency=Latency}, Char);
     
     {R, cmsg_name_query, _} ->
+        io:format("started handling for ~p ~p~n", [Char#char.id, Char#char.name]),
         Response = <<(Char#char.id)?L, 0?L,
-                     (Char#char.name)?b, 0?B,
+                     (make_cstring(Char#char.name))/binary,
                      0?B, 1?B, 1?B, 1?B, 0?B>>,
+        io:format("build response ~p~n", [Response]),
         S ! {self(), smsg_name_query_response, Response},
+        io:format("response sent~n"),
+        in_world(State, Char);
+    
+    {R, cmsg_update_account_data, _} ->
         in_world(State, Char);
     
     {R, Handler, Data} ->

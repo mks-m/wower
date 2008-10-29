@@ -68,6 +68,7 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         ok = send_timespeed(S),
         ok = send_status(S),
         ok = send_self(S, Char),
+        put(tick_count, 0),
         io:format("entering world loop~n"),
         in_world(State, Char);
     
@@ -95,6 +96,37 @@ in_world(#client_state{receiver=R, sender=S}=State, #char{}=Char) ->
         in_world(State, Char);
     
     {R, cmsg_update_account_data, _} ->
+        in_world(State, Char);
+    
+    {R, cmsg_set_active_mover, <<Mover?Q>>} ->
+        put(active_mover, Mover),
+        send_tick_count(S),
+        in_world(State, Char);
+    
+    % TODO: implement
+    {R, cmsg_set_actionbar_toggles, _} ->
+        in_world(State, Char);
+    
+    {R, cmsg_request_raid_info, _} ->
+        S ! {self(), smsg_raid_instance_info, <<0?L>>},
+        in_world(State, Char);
+    
+    {R, cmsg_gmticket_getticket, _} ->
+        S ! {self(), smsg_gmticket_getticket, <<10?L>>},
+        in_world(State, Char);
+    
+    {R, cmsg_query_time, _} ->
+        UnixTime = common_helper:unix_time(),
+        S ! {self(), smsg_query_time_response, <<UnixTime?L>>},
+        in_world(State, Char);
+    
+    % TODO: implement
+    {R, cmsg_item_query_single, _} ->
+        in_world(State, Char);
+    
+    {R, cmsg_time_sync_resp, <<Tick?L, Time?L>>} ->
+        put(tick_count, Tick),
+        put(client_time, Time),
         in_world(State, Char);
     
     {R, Handler, Data} ->
@@ -220,3 +252,6 @@ send_self(S, Char) ->
                >>,
     S ! {self(), smsg_update_object, Update},
     ok.
+
+send_tick_count(S) ->
+    S ! {self(), smsg_time_sync_req, <<(get(tick_count))?L>>}.

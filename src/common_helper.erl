@@ -1,5 +1,5 @@
 -module(common_helper).
--export([do/1, game_time/0, ms_time/0, min/2, max/2]).
+-export([do/1, game_time/0, ms_time/0, unix_time/0, min/2, max/2]).
 
 do(Q) ->
     F = fun() -> qlc:e(Q) end,
@@ -21,6 +21,10 @@ game_time() ->
 ms_time() ->
     {Mega, Seconds, Micro} = erlang:now(),
     Mega * 1000 + Seconds + Micro div 1000.
+
+unix_time() ->
+    {Mega, Seconds, _} = erlang:now(),
+    Mega * 1000 + Seconds.
 
 min(X, Y) when X < Y -> X;
 min(_, Y) -> Y.

@@ -47,15 +47,23 @@ start(Method) ->
     start().
 
 load() ->
-    c:l(srp6),
+    c:l(account_helper),
+    c:l(char_helper),
+    c:l(common_helper),
     c:l(logon_opcodes),
     c:l(logon_packets),
     c:l(logon_patterns),
-    c:l(account_helper).
+    c:l(packet_helper),
+    c:l(srp6),
+    c:l(tcp_server).
 
 compile() ->
-    c:c(srp6),
+    c:c(account_helper),
+    c:c(char_helper),
+    c:c(common_helper),
     c:c(logon_opcodes),
     c:c(logon_packets),
     c:c(logon_patterns),
-    c:c(account_helper).
+    c:c(packet_helper),
+    c:c(srp6),
+    c:c(tcp_server).

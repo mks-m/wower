@@ -26,11 +26,15 @@ restart(Method) ->
     ok.
 
 compile() ->
+    c:c(logon_server),
+    c:c(realm_server),
     logon_server:compile(),
     realm_server:compile(),
     ok.
 
 load() ->
+    c:l(logon_server),
+    c:l(realm_server),
     logon_server:load(),
     realm_server:load(),
     ok.

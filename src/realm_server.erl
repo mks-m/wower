@@ -70,18 +70,32 @@ start(Method) ->
     start().
 
 load() ->
-    c:l(srp6),
+    c:l(account_helper),
+    c:l(char_helper),
+    c:l(character),
+    c:l(common_helper),
+    c:l(packet_helper),
+    c:l(realm_crypto),
+    c:l(realm_helper),
     c:l(realm_opcodes),
     c:l(realm_patterns),
-    c:l(realm_packets),
-    c:l(realm_helper).
+    c:l(srp6),
+    c:l(tcp_server),
+    c:l(update_fields).
 
 compile() ->
-    c:c(srp6),
+    c:c(account_helper),
+    c:c(char_helper),
+    c:c(character),
+    c:c(common_helper),
+    c:c(packet_helper),
+    c:c(realm_crypto),
+    c:c(realm_helper),
     c:c(realm_opcodes),
     c:c(realm_patterns),
-    c:c(realm_packets),
-    c:c(realm_helper).
+    c:c(srp6),
+    c:c(tcp_server),
+    c:c(update_fields).
 
 auth_session(Rest) ->
     {_, A, _}      = realm_patterns:cmsg_auth_session(Rest),

@@ -103,7 +103,6 @@ in_world(#client_state{receiver=R, sender=S}=State, #char{}=Char) ->
         send_tick_count(S),
         in_world(State, Char);
     
-    % TODO: implement
     {R, cmsg_set_actionbar_toggles, _} ->
         in_world(State, Char);
     
@@ -120,8 +119,31 @@ in_world(#client_state{receiver=R, sender=S}=State, #char{}=Char) ->
         S ! {self(), smsg_query_time_response, <<UnixTime?L>>},
         in_world(State, Char);
     
-    % TODO: implement
     {R, cmsg_item_query_single, _} ->
+        in_world(State, Char);
+
+    {R, msg_query_next_mail_time, _} ->
+        S ! {self(), msg_query_next_mail_time, <<16#C7A8C000?L, 0?L>>},
+        in_world(State, Char);
+
+    {R, cmsg_battlefield_status, _} ->
+        in_world(State, Char);
+
+    {R, cmsg_meetingstone_info, _} ->
+        S ! {self(), smsg_meetingstone_setqueue, <<0?L, 6?B>>},
+        in_world(State, Char);
+
+    {R, msg_guild_event_log_query, _} ->
+        S ! {self(), msg_guild_event_log_query, <<0?B>>},
+        in_world(State, Char);
+
+    {R, cmsg_move_time_skipped, _} ->
+        in_world(State, Char);
+
+    {R, msg_move_fall_land, _} ->
+        in_world(State, Char);
+
+    {R, cmsg_join_channel, _} ->
         in_world(State, Char);
     
     {R, cmsg_time_sync_resp, <<Tick?L, Time?L>>} ->

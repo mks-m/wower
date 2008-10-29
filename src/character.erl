@@ -51,7 +51,7 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
     
     {R, cmsg_get_channel_member_count, Data} ->
         {Name, _} = read_cstring(Data),
-        S ! {self(), smsg_channel_member_count, <<Name?b, 0?B, 0?B, 0?L>>},
+        S ! {self(), smsg_channel_member_count, <<(make_cstring(Name))/binary, 0?B, 0?L>>},
         not_in_world(State);
     
     {R, cmsg_player_login, D} ->
@@ -88,13 +88,10 @@ in_world(#client_state{receiver=R, sender=S}=State, #char{}=Char) ->
         in_world(State#client_state{latency=Latency}, Char);
     
     {R, cmsg_name_query, _} ->
-        io:format("started handling for ~p ~p~n", [Char#char.id, Char#char.name]),
         Response = <<(Char#char.id)?L, 0?L,
                      (make_cstring(Char#char.name))/binary,
                      0?B, 1?B, 1?B, 1?B, 0?B>>,
-        io:format("build response ~p~n", [Response]),
         S ! {self(), smsg_name_query_response, Response},
-        io:format("response sent~n"),
         in_world(State, Char);
     
     {R, cmsg_update_account_data, _} ->

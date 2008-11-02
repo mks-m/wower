@@ -145,11 +145,19 @@ in_world(#client_state{receiver=R, sender=S}=State, #char{}=Char) ->
 
     {R, cmsg_join_channel, _} ->
         in_world(State, Char);
+
+    {R, cmsg_tutorial_flag, _} ->
+        in_world(State, Char);
     
     {R, cmsg_time_sync_resp, <<Tick?L, Time?L>>} ->
         put(tick_count, Tick),
         put(client_time, Time),
         in_world(State, Char);
+    
+    {R, cmsg_get_channel_member_count, Data} ->
+        {Name, _} = read_cstring(Data),
+        S ! {self(), smsg_channel_member_count, <<(make_cstring(Name))/binary, 0?B, 0?L>>},
+        not_in_world(State);
     
     {R, Handler, Data} ->
         io:format("unhandled: ~p~n~p~n", [Handler, Data]),

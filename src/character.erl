@@ -49,11 +49,6 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
     {R, msg_query_guild_bank_text, _} ->
         not_in_world(State);
     
-    {R, cmsg_get_channel_member_count, Data} ->
-        {Name, _} = read_cstring(Data),
-        S ! {self(), smsg_channel_member_count, <<(make_cstring(Name))/binary, 0?B, 0?L>>},
-        not_in_world(State);
-    
     {R, cmsg_player_login, D} ->
         {ok, CharId} = realm_patterns:cmsg_player_login(D),
         Char = char_helper:find(CharId),
@@ -71,9 +66,20 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         put(tick_count, 0),
         io:format("entering world loop~n"),
         in_world(State, Char);
+
+    {R, {M, F}, Data} ->
+        C1 = erlang:module_loaded(M),
+        C2 = erlang:function_exported(M, F, 3),
+        if C1 and C2 ->
+            {Fallback, Args} = M:F(S, State, Data),
+            erlang:apply(?MODULE, Fallback, Args);
+        true ->
+            io:format("undefined: ~p:~p(~p)~n", [M, F, Data]),
+            not_in_world(State)
+        end;
     
     {R, Handler, Data} ->
-        io:format("unhandled: ~p~n~p~n", [Handler, Data]),
+        io:format("unhandled: ~p(~p)~n", [Handler, Data]),
         not_in_world(State);
     
     Any ->
@@ -152,11 +158,6 @@ in_world(#client_state{receiver=R, sender=S}=State, #char{}=Char) ->
     {R, cmsg_time_sync_resp, <<Tick?L, Time?L>>} ->
         put(tick_count, Tick),
         put(client_time, Time),
-        in_world(State, Char);
-    
-    {R, cmsg_get_channel_member_count, Data} ->
-        {Name, _} = read_cstring(Data),
-        S ! {self(), smsg_channel_member_count, <<(make_cstring(Name))/binary, 0?B, 0?L>>},
         in_world(State, Char);
 
     {R, {M, F}, Data} ->

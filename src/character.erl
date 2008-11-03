@@ -65,14 +65,14 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         ok = send_self(S, Char),
         put(tick_count, 0),
         io:format("entering world loop~n"),
-        in_world(State, Char);
+        in_world(State#client_state{char=Char});
 
     {R, {M, F}, Data} ->
         C1 = erlang:module_loaded(M),
         C2 = erlang:function_exported(M, F, 3),
         if C1 and C2 ->
-            {Fallback, Args} = M:F(S, State, Data),
-            erlang:apply(?MODULE, Fallback, Args);
+            NewState = M:F(S, State, Data),
+            not_in_world(NewState);
         true ->
             io:format("undefined: ~p:~p(~p)~n", [M, F, Data]),
             not_in_world(State)
@@ -87,97 +87,97 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         not_in_world(State)
     end.
 
-in_world(#client_state{receiver=R, sender=S}=State, #char{}=Char) ->
+in_world(#client_state{receiver=R, sender=S, char=Char}=State) ->
     receive
     {R, cmsg_ping, D} ->
         {Sequence, Latency} = realm_patterns:cmsg_ping(D),
         S ! {self(), smsg_pong, <<Sequence?L>>},
-        in_world(State#client_state{latency=Latency}, Char);
+        in_world(State#client_state{latency=Latency});
     
     {R, cmsg_name_query, _} ->
         Response = <<(Char#char.id)?L, 0?L,
                      (make_cstring(Char#char.name))/binary,
                      0?B, 1?B, 1?B, 1?B, 0?B>>,
         S ! {self(), smsg_name_query_response, Response},
-        in_world(State, Char);
+        in_world(State);
     
     {R, cmsg_update_account_data, _} ->
-        in_world(State, Char);
+        in_world(State);
     
     {R, cmsg_set_active_mover, <<Mover?Q>>} ->
         put(active_mover, Mover),
         send_tick_count(S),
-        in_world(State, Char);
+        in_world(State);
     
     {R, cmsg_set_actionbar_toggles, _} ->
-        in_world(State, Char);
+        in_world(State);
     
     {R, cmsg_request_raid_info, _} ->
         S ! {self(), smsg_raid_instance_info, <<0?L>>},
-        in_world(State, Char);
+        in_world(State);
     
     {R, cmsg_gmticket_getticket, _} ->
         S ! {self(), smsg_gmticket_getticket, <<10?L>>},
-        in_world(State, Char);
+        in_world(State);
     
     {R, cmsg_query_time, _} ->
         UnixTime = common_helper:unix_time(),
         S ! {self(), smsg_query_time_response, <<UnixTime?L>>},
-        in_world(State, Char);
+        in_world(State);
     
     {R, cmsg_item_query_single, _} ->
-        in_world(State, Char);
+        in_world(State);
 
     {R, msg_query_next_mail_time, _} ->
         S ! {self(), msg_query_next_mail_time, <<16#C7A8C000?L, 0?L>>},
-        in_world(State, Char);
+        in_world(State);
 
     {R, cmsg_battlefield_status, _} ->
-        in_world(State, Char);
+        in_world(State);
 
     {R, cmsg_meetingstone_info, _} ->
         S ! {self(), smsg_meetingstone_setqueue, <<0?L, 6?B>>},
-        in_world(State, Char);
+        in_world(State);
 
     {R, msg_guild_event_log_query, _} ->
         S ! {self(), msg_guild_event_log_query, <<0?B>>},
-        in_world(State, Char);
+        in_world(State);
 
     {R, cmsg_move_time_skipped, _} ->
-        in_world(State, Char);
+        in_world(State);
 
     {R, msg_move_fall_land, _} ->
-        in_world(State, Char);
+        in_world(State);
 
     {R, cmsg_join_channel, _} ->
-        in_world(State, Char);
+        in_world(State);
 
     {R, cmsg_tutorial_flag, _} ->
-        in_world(State, Char);
+        in_world(State);
     
     {R, cmsg_time_sync_resp, <<Tick?L, Time?L>>} ->
         put(tick_count, Tick),
         put(client_time, Time),
-        in_world(State, Char);
+        in_world(State);
 
     {R, {M, F}, Data} ->
         C1 = erlang:module_loaded(M),
         C2 = erlang:function_exported(M, F, 4),
         if C1 and C2 ->
-            {Fallback, Args} = M:F(S, State, Char, Data),
-            erlang:apply(?MODULE, Fallback, Args);
+            NewState = M:F(S, State, Data),
+            in_world(NewState);
         true ->
             io:format("undefined: ~p:~p(~p)~n", [M, F, Data]),
-            in_world(State, Char)
+            in_world(State)
         end;
     
     {R, Handler, Data} ->
         io:format("unhandled: ~p(~p)~n", [Handler, Data]),
-        in_world(State, Char);
+        in_world(State);
     
     Any ->
         io:format("unauthorized: ~p~n", [Any]),
-        in_world(State, Char)
+        in_world(State)
     end.
 
 set_dungeon_difficulty(S, -1) ->

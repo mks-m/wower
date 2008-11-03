@@ -1,2 +1,2 @@
--record(client_state, {account, realm, sender, receiver, latency}).
+-record(client_state, {account, realm, sender, receiver, latency, char}).
 -record(crypt_state, {i, j, key}).

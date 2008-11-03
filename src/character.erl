@@ -157,7 +157,7 @@ in_world(#client_state{receiver=R, sender=S}=State, #char{}=Char) ->
     {R, cmsg_get_channel_member_count, Data} ->
         {Name, _} = read_cstring(Data),
         S ! {self(), smsg_channel_member_count, <<(make_cstring(Name))/binary, 0?B, 0?L>>},
-        not_in_world(State);
+        in_world(State);
     
     {R, Handler, Data} ->
         io:format("unhandled: ~p~n~p~n", [Handler, Data]),

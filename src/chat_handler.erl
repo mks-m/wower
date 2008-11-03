@@ -23,4 +23,4 @@ cmsg_get_channel_member_count(S, St, Ch, Data) ->
 cmsg_get_channel_member_count(S, St, Data) ->
     {Name, _} = read_cstring(Data),
     S ! {self(), smsg_channel_member_count, <<(make_cstring(Name))/binary, 0?B, 0?L>>},
-    {in_world, [St]}.
+    {not_in_world, [St]}.

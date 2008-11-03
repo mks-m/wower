@@ -149,9 +149,6 @@ in_world(#client_state{receiver=R, sender=S, char=Char}=State) ->
     {R, msg_move_fall_land, _} ->
         in_world(State);
 
-    {R, cmsg_join_channel, _} ->
-        in_world(State);
-
     {R, cmsg_tutorial_flag, _} ->
         in_world(State);
     
@@ -162,7 +159,7 @@ in_world(#client_state{receiver=R, sender=S, char=Char}=State) ->
 
     {R, {M, F}, Data} ->
         C1 = erlang:module_loaded(M),
-        C2 = erlang:function_exported(M, F, 4),
+        C2 = erlang:function_exported(M, F, 3),
         if C1 and C2 ->
             NewState = M:F(S, State, Data),
             in_world(NewState);

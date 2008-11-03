@@ -1,7 +1,7 @@
 -module(chat_handler).
 
--export([cmsg_get_channel_member_count/4,
-         cmsg_get_channel_member_count/3]).
+-export([cmsg_get_channel_member_count/3,
+         cmsg_join_channel/3]).
 -import(packet_helper, [read_cstring/1,
                         make_cstring/1]).
 
@@ -15,12 +15,10 @@
 -define(W,   :16?I).                   % uint16 - W for word
 -define(B,    :8).                     % byte (doesn't need to be endianated)
 
-cmsg_get_channel_member_count(S, St, Ch, Data) ->
-    {Name, _} = read_cstring(Data),
-    S ! {self(), smsg_channel_member_count, <<(make_cstring(Name))/binary, 0?B, 0?L>>},
-    {in_world, [St, Ch]}.
-
 cmsg_get_channel_member_count(S, St, Data) ->
     {Name, _} = read_cstring(Data),
     S ! {self(), smsg_channel_member_count, <<(make_cstring(Name))/binary, 0?B, 0?L>>},
-    {not_in_world, [St]}.
+    St.
+
+cmsg_join_channel(_, St, _) ->
+    St.

@@ -158,9 +158,20 @@ in_world(#client_state{receiver=R, sender=S}=State, #char{}=Char) ->
         {Name, _} = read_cstring(Data),
         S ! {self(), smsg_channel_member_count, <<(make_cstring(Name))/binary, 0?B, 0?L>>},
         in_world(State, Char);
+
+    {R, {M, F}, Data} ->
+        C1 = erlang:module_loaded(M),
+        C2 = erlang:function_exported(M, F, 4),
+        if C1 and C2 ->
+            {Fallback, Args} = M:F(S, State, Char, Data),
+            erlang:apply(?MODULE, Fallback, Args);
+        true ->
+            io:format("undefined: ~p:~p(~p)~n", [M, F, Data]),
+            in_world(State, Char)
+        end;
     
     {R, Handler, Data} ->
-        io:format("unhandled: ~p~n~p~n", [Handler, Data]),
+        io:format("unhandled: ~p(~p)~n", [Handler, Data]),
         in_world(State, Char);
     
     Any ->

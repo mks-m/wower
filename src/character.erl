@@ -288,9 +288,6 @@ send_self(S, Char) ->
 send_tick_count(S) ->
     S ! {self(), smsg_time_sync_req, <<(get(tick_count))?L>>}.
 
-cmsg_char_create(S, St, D) ->
-    St.
-
 cmsg_ping(S, St, D) ->
     {Sequence, Latency} = realm_patterns:cmsg_ping(D),
     S ! {self(), smsg_pong, <<Sequence?L>>},
@@ -299,4 +296,12 @@ cmsg_ping(S, St, D) ->
 cmsg_char_enum(S, St, _) ->
     Data = realm_patterns:smsg_char_enum(St#client_state.account, St#client_state.realm),
     S ! {self(), smsg_char_enum, Data},
+    St.
+
+cmsg_char_create(S, St, D) ->
+    {Name, Rest} = read_cstring(D),
+    <<Race?B, Class?B, Gender?B, Skin?B,
+      Face?B, HS?B, HC?B, FH?B,
+      Outfit?B, Rest2/binary>> = Rest,
+    
     St.

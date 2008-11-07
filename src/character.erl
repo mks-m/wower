@@ -1,5 +1,8 @@
 -module(character).
--export([init/1]).
+-export([init/1,
+         cmsg_ping/3,
+         cmsg_char_enum/3,
+         cmsg_char_create/3]).
 
 -include("realm_records.hrl").
 -include("database_records.hrl").
@@ -23,16 +26,6 @@ init(State) ->
 
 not_in_world(#client_state{receiver=R, sender=S}=State) ->
     receive
-    {R, cmsg_ping, D} ->
-        {Sequence, Latency} = realm_patterns:cmsg_ping(D),
-        S ! {self(), smsg_pong, <<Sequence?L>>},
-        not_in_world(State#client_state{latency=Latency});
-        
-    {R, cmsg_char_enum, _} ->
-        Data = realm_patterns:smsg_char_enum(State#client_state.account, State#client_state.realm),
-        S ! {self(), smsg_char_enum, Data},
-        not_in_world(State);
-    
     {R, cmsg_realm_split, _} ->
         Date = list_to_binary("01/01/01"),
         S ! {self(), smsg_realm_split, <<16#FFFFFFFF?L, 0?L, Date/binary, 0?B>>},
@@ -294,3 +287,16 @@ send_self(S, Char) ->
 
 send_tick_count(S) ->
     S ! {self(), smsg_time_sync_req, <<(get(tick_count))?L>>}.
+
+cmsg_char_create(S, St, D) ->
+    St.
+
+cmsg_ping(S, St, D) ->
+    {Sequence, Latency} = realm_patterns:cmsg_ping(D),
+    S ! {self(), smsg_pong, <<Sequence?L>>},
+    St#client_state{latency=Latency}.
+
+cmsg_char_enum(S, St, _) ->
+    Data = realm_patterns:smsg_char_enum(St#client_state.account, St#client_state.realm),
+    S ! {self(), smsg_char_enum, Data},
+    St.

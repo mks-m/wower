@@ -29,7 +29,6 @@ loop(Socket) ->
 authenticate(Socket) ->
     Opcode = realm_opcodes:c(cmsg_auth_session),
     {ok, <<Size:16/integer-big, Opcode:32/integer-little>>} = gen_tcp:recv(Socket, 6),
-    io:format("handling: cmsg_auth_session (~p), size: ~p~n", [Opcode, Size]),
     {ok, Data} = if Size-4 == 0 -> {ok, <<>>}; true -> gen_tcp:recv(Socket, Size-4) end,
     {O, D, A, EK, DK} = auth_session(Data),
     R = spawn_link(?MODULE, receiver, [Socket, self(), DK]),

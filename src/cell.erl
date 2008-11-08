@@ -1,7 +1,7 @@
 % TODO: this will be oct-tree based process 
 %       pool for handling objects in region
 -module(cell).
--export([create/1, create/3,
+-export([create/0, create/3,
          init/1, init/2,
          mmm/7, mmp/7, mpm/7, mpp/7,
          pmm/7, pmp/7, ppm/7, ppp/7]).
@@ -24,8 +24,13 @@
 
 -define(MAX_PER_CELL, 1000).
 
-create(#size{x=X, y=Y, z=Z} = Size) ->
-    Info = #info{s=Size, l=#location{x=X/2, y=Y/2, z=Z/2}},
+create() ->
+    Info = #info{s=#size{x=math:pow(2, 16),
+                         y=math:pow(2, 16),
+                         z=math:pow(2, 16)}, 
+                 l=#location{x=0.0, 
+                             y=0.0, 
+                             z=0.0}},
     spawn_link(?MODULE, init, [Info]).
 
 create(Bitmap, #info{s=#size{x=SX, y=SY, z=SZ}, 
@@ -63,10 +68,10 @@ cell(Info, Objects) ->
     end.
 
 % TODO: merge meta-cell into one cell
-meta(Info, Objects) ->
+meta(Info) ->
     receive
     _ ->
-        meta(Info, Objects)
+        meta(Info)
     end.
 
 split(Info, Objects) ->
@@ -78,7 +83,8 @@ split(Info, Objects) ->
                              pmp=create(pmp, Info, Objects),
                              ppm=create(ppm, Info, Objects),
                              ppp=create(ppp, Info, Objects)},
-    meta(Info#info{n=Navigation}, Objects).
+    ets:delete(Objects),
+    meta(Info#info{n=Navigation}).
 
 mmm(O, SX, SY, SZ, LX, LY, LZ) ->
     NL = #location{x=LX-SX/4, y=LY-SY/4, z=LZ-SZ/4},

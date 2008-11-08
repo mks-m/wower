@@ -62,8 +62,21 @@ cell(Info, Objects) ->
     {set, O, X, Y, Z} ->
         ets:insert(Objects, #object{o=O, x=X, y=Y, z=Z}),
         cell(Info, Objects);
-    {bc, From, Range, Message} ->
+    {bc, #object{x=OX, y=OY, z=OZ} = O, #size{x=RX, y=RY, z=RZ} = R, Message} ->
         % TODO: implement broadcasting to objects
+        #info{l=#location{x=LX, y=LY, z=LZ},
+              s=#size{x=SX, y=SY, z=SZ}} = Info,
+        if LX-SX <  OX-RX orelse LY-SY <  OY-RY orelse LZ-SZ <  OZ-RZ orelse
+           LX+SX >= OX+RX orelse LY+SY >= OY+RY orelse LZ+SZ >= OZ+RZ ->
+            Info#info.p ! {bc, self(), O, R, Message};
+        true ->
+            ok
+        end,
+        InRange = ets:select(Objects, [{'<', '$3', OX+RX}, {'>', '$3', OX-RX},
+                                       {'<', '$3', OY+RY}, {'>', '$3', OY-RY},
+                                       {'<', '$3', OZ+RZ}, {'>', '$3', OZ-RZ}]),
+        cell(Info, Objects);
+    _ ->
         cell(Info, Objects)
     end.
 
@@ -87,42 +100,34 @@ split(Info, Objects) ->
     meta(Info#info{n=Navigation}).
 
 mmm(O, SX, SY, SZ, LX, LY, LZ) ->
-    NL = #location{x=LX-SX/4, y=LY-SY/4, z=LZ-SZ/4},
-    NO = ets:select(O, [{'<', '$3', SX}, {'<', '$4', SY}, {'<', '$5', SZ}]),
-    {NL, NO}.
+    {#location{x=LX-SX/4, y=LY-SY/4, z=LZ-SZ/4},
+     ets:select(O, [{'<', '$3', SX}, {'<', '$4', SY}, {'<', '$5', SZ}])}.
 
 mmp(O, SX, SY, SZ, LX, LY, LZ) ->
-    NL = #location{x=LX-SX/4, y=LY-SY/4, z=LZ+SZ/4},
-    NO = ets:select(O, [{'<', '$3', SX}, {'<', '$4', SY}, {'>=', '$5', SZ}]),
-    {NL, NO}.
+    {#location{x=LX-SX/4, y=LY-SY/4, z=LZ+SZ/4},
+     ets:select(O, [{'<', '$3', SX}, {'<', '$4', SY}, {'>=', '$5', SZ}])}.
 
 mpm(O, SX, SY, SZ, LX, LY, LZ) ->
-    NL = #location{x=LX-SX/4, y=LY+SY/4, z=LZ-SZ/4},
-    NO = ets:select(O, [{'<', '$3', SX}, {'>=', '$4', SY}, {'<', '$5', SZ}]),
-    {NL, NO}.
+    {#location{x=LX-SX/4, y=LY+SY/4, z=LZ-SZ/4},
+     ets:select(O, [{'<', '$3', SX}, {'>=', '$4', SY}, {'<', '$5', SZ}])}.
 
 mpp(O, SX, SY, SZ, LX, LY, LZ) ->
-    NL = #location{x=LX-SX/4, y=LY+SY/4, z=LZ+SZ/4},
-    NO = ets:select(O, [{'<', '$3', SX}, {'>=', '$4', SY}, {'>=', '$5', SZ}]),
-    {NL, NO}.
+    {#location{x=LX-SX/4, y=LY+SY/4, z=LZ+SZ/4},
+     ets:select(O, [{'<', '$3', SX}, {'>=', '$4', SY}, {'>=', '$5', SZ}])}.
 
 pmm(O, SX, SY, SZ, LX, LY, LZ) ->
-    NL = #location{x=LX+SX/4, y=LY-SY/4, z=LZ-SZ/4},
-    NO = ets:select(O, [{'>=', '$3', SX}, {'<', '$4', SY}, {'<', '$5', SZ}]),
-    {NL, NO}.
+    {#location{x=LX+SX/4, y=LY-SY/4, z=LZ-SZ/4},
+     ets:select(O, [{'>=', '$3', SX}, {'<', '$4', SY}, {'<', '$5', SZ}])}.
 
 pmp(O, SX, SY, SZ, LX, LY, LZ) ->
-    NL = #location{x=LX+SX/4, y=LY-SY/4, z=LZ+SZ/4},
-    NO = ets:select(O, [{'>=', '$3', SX}, {'<', '$4', SY}, {'>=', '$5', SZ}]),
-    {NL, NO}.
+    {#location{x=LX+SX/4, y=LY-SY/4, z=LZ+SZ/4},
+     ets:select(O, [{'>=', '$3', SX}, {'<', '$4', SY}, {'>=', '$5', SZ}])}.
 
 ppm(O, SX, SY, SZ, LX, LY, LZ) ->
-    NL = #location{x=LX+SX/4, y=LY+SY/4, z=LZ-SZ/4},
-    NO = ets:select(O, [{'>=', '$3', SX}, {'>=', '$4', SY}, {'<', '$5', SZ}]),
-    {NL, NO}.
+    {#location{x=LX+SX/4, y=LY+SY/4, z=LZ-SZ/4},
+     ets:select(O, [{'>=', '$3', SX}, {'>=', '$4', SY}, {'<', '$5', SZ}])}.
 
 ppp(O, SX, SY, SZ, LX, LY, LZ) ->
-    NL = #location{x=LX+SX/4, y=LY+SY/4, z=LZ+SZ/4},
-    NO = ets:select(O, [{'>=', '$3', SX}, {'>=', '$4', SY}, {'>=', '$5', SZ}]),
-    {NL, NO}.
+    {#location{x=LX+SX/4, y=LY+SY/4, z=LZ+SZ/4},
+     ets:select(O, [{'>=', '$3', SX}, {'>=', '$4', SY}, {'>=', '$5', SZ}])}.
 

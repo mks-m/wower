@@ -1,7 +1,7 @@
 % TODO: this will be oct-tree based process 
 %       pool for handling objects in region
 -module(cell).
--export([create/0, create/3,
+-export([create/0,
          init/1, init/2,
          mmm/7, mmp/7, mpm/7, mpp/7,
          pmm/7, pmp/7, ppm/7, ppp/7]).
@@ -18,64 +18,87 @@
                       pmm, pmp, ppm, ppp }).
 
 % size, location and object records
--record(location, {x, y, z}).
--record(size, {x, y, z}).
+-record(vector, {x, y, z}).
 -record(object, {o, x, y, z}).
 
--define(MAX_PER_CELL, 1000).
+-define(MAX_PER_CELL, 5).
 
+% used to create root node
 create() ->
-    Info = #info{s=#size{x=math:pow(2, 16),
-                         y=math:pow(2, 16),
-                         z=math:pow(2, 16)}, 
-                 l=#location{x=0.0, 
-                             y=0.0, 
-                             z=0.0}},
+    Info = #info{s=#vector{x=math:pow(2, 16), y=math:pow(2, 16), z=math:pow(2, 16)}, 
+                 l=#vector{x=0.0, y=0.0, z=0.0}},
     spawn_link(?MODULE, init, [Info]).
 
-create(Bitmap, #info{s=#size{x=SX, y=SY, z=SZ}, 
-                     l=#location{x=LX, y=LY, z=LZ}}, O) ->
-    NS = #size{x=SX/2, y=SY/2, z=SZ/2},
+% used internally to create child nodes while splitting cell 
+create(Bitmap, #info{s=#vector{x=SX, y=SY, z=SZ}, 
+                     l=#vector{x=LX, y=LY, z=LZ}}, O) ->
+    NS = #vector{x=SX/2, y=SY/2, z=SZ/2},
     {NL, NO} = ?MODULE:Bitmap(O, SX, SY, SZ, LX, LY, LZ),
     spawn_link(?MODULE, init, [#info{p=self(), s=NS, l=NL}, NO]).
 
+% initializes root node
 init(#info{} = Info) ->
-    Objects = ets:new(objects, [set, private, {keypos, 2}]),
+    io:format("node started:~nsize: ~p~nlocn: ~p~n", [Info#info.s, Info#info.l]),
+    Objects = dict:new(),
     cell(Info, Objects).
 
+% initializes child cell with predefined objects count
 init(#info{} = Info, ObjectsList) ->
-    Objects = ets:new(objects, [set, private, {keypos, 2}]),
+    Objects = dict:new(),
     ets:insert(Objects, ObjectsList),
     cell(Info, Objects).
 
+% main loop for cell
+% accepts next messages:
+%   add: adds object to keep an eye on
+%        also takes care of splitting cell into 8 more if 
+%        there's enough amount of objects added
+%
+%   set: updates object's coordinates
+%
+%   bc: broadcasts message from one object to others in 
+%       specified range also takes care of inter-cell 
+%       broadcasting when range goes out of cell bounds
+%
+%   status: used for testing purposes
+%
+%   die: dispose objects storage and end process
 cell(Info, Objects) ->
     receive
-    {add, O, X, Y, Z} ->
-        ets:insert_new(Objects, #object{o=O, x=X, y=Y, z=Z}),
-        Count = ets:select_count(Objects, [{'_'}]), 
-        if 
-        Count > ?MAX_PER_CELL ->
-            split(Info, Objects);
-        true ->
-            cell(Info, Objects)
-        end;
     {set, O, X, Y, Z} ->
-        ets:insert(Objects, #object{o=O, x=X, y=Y, z=Z}),
-        cell(Info, Objects);
-    {bc, #object{x=OX, y=OY, z=OZ} = O, #size{x=RX, y=RY, z=RZ} = R, Message} ->
-        % TODO: implement broadcasting to objects
-        #info{l=#location{x=LX, y=LY, z=LZ},
-              s=#size{x=SX, y=SY, z=SZ}} = Info,
+        NewObjects = dict:store(O, #vector{x=X, y=Y, z=Z}, Objects),
+        cell(Info, NewObjects);
+    {add, O, X, Y, Z} ->
+        NewObjects = dict:store(O, #vector{x=X, y=Y, z=Z}, Objects),
+        Count = dict:size(Objects), 
+        if Count > ?MAX_PER_CELL -> split(Info, NewObjects);
+                            true -> cell(Info, NewObjects)
+        end;
+    {bc, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Message} ->
+        #info{l=#vector{x=LX, y=LY, z=LZ},
+              s=#vector{x=SX, y=SY, z=SZ}} = Info,
         if LX-SX <  OX-RX orelse LY-SY <  OY-RY orelse LZ-SZ <  OZ-RZ orelse
            LX+SX >= OX+RX orelse LY+SY >= OY+RY orelse LZ+SZ >= OZ+RZ ->
             Info#info.p ! {bc, self(), O, R, Message};
         true ->
             ok
         end,
-        InRange = ets:select(Objects, [{'<', '$3', OX+RX}, {'>', '$3', OX-RX},
-                                       {'<', '$3', OY+RY}, {'>', '$3', OY-RY},
-                                       {'<', '$3', OZ+RZ}, {'>', '$3', OZ-RZ}]),
+        InRange = dict:filter(fun(_, #vector{x=KX, y=KY, z=KZ}) ->
+                                  if KX < OX+RX andalso KX > OX-RX andalso
+                                     KY < OY+RY andalso KY > OY-RY andalso
+                                     KZ < OZ+RZ andalso KZ > OZ-RZ -> true;
+                                  true -> false
+                                  end 
+                              end, Objects),
+        dict:fold(fun(_, _, ok) -> 
+                      ok
+                  end, ok, InRange),
         cell(Info, Objects);
+    {status, From} when From == Info#info.p ->
+        io:format("cell, holding ~p~n", [dict:size(Objects)]),
+        cell(Info, Objects);
+    {die, From} when From == Info#info.p ->
+        ok;
     _ ->
         cell(Info, Objects)
     end.
@@ -83,6 +106,16 @@ cell(Info, Objects) ->
 % TODO: merge meta-cell into one cell
 meta(Info) ->
     receive
+    {add, O, X, Y, Z} ->
+        meta(Info);
+    {set, O, X, Y, Z} ->
+        meta(Info);
+    {bc, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Message} ->
+        % TODO: implement broadcasting to cells
+        meta(Info);
+    {status, From} ->
+        From ! {status, self(), Info},
+        meta(Info);
     _ ->
         meta(Info)
     end.
@@ -96,38 +129,60 @@ split(Info, Objects) ->
                              pmp=create(pmp, Info, Objects),
                              ppm=create(ppm, Info, Objects),
                              ppp=create(ppp, Info, Objects)},
-    ets:delete(Objects),
     meta(Info#info{n=Navigation}).
 
 mmm(O, SX, SY, SZ, LX, LY, LZ) ->
-    {#location{x=LX-SX/4, y=LY-SY/4, z=LZ-SZ/4},
-     ets:select(O, [{'<', '$3', SX}, {'<', '$4', SY}, {'<', '$5', SZ}])}.
+    {#vector{x=LX-SX/4, y=LY-SY/4, z=LZ-SZ/4},
+     dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
+                     if X < SX andalso Y < SY andalso Z < SZ -> true; 
+                     true -> false end 
+                 end, O)}.
 
 mmp(O, SX, SY, SZ, LX, LY, LZ) ->
-    {#location{x=LX-SX/4, y=LY-SY/4, z=LZ+SZ/4},
-     ets:select(O, [{'<', '$3', SX}, {'<', '$4', SY}, {'>=', '$5', SZ}])}.
+    {#vector{x=LX-SX/4, y=LY-SY/4, z=LZ+SZ/4},
+     dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
+                     if X < SX andalso Y < SY andalso Z >= SZ -> true; 
+                     true -> false end 
+                 end, O)}.
 
 mpm(O, SX, SY, SZ, LX, LY, LZ) ->
-    {#location{x=LX-SX/4, y=LY+SY/4, z=LZ-SZ/4},
-     ets:select(O, [{'<', '$3', SX}, {'>=', '$4', SY}, {'<', '$5', SZ}])}.
+    {#vector{x=LX-SX/4, y=LY+SY/4, z=LZ-SZ/4},
+     dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
+                     if X < SX andalso Y >= SY andalso Z < SZ -> true; 
+                     true -> false end 
+                 end, O)}.
 
 mpp(O, SX, SY, SZ, LX, LY, LZ) ->
-    {#location{x=LX-SX/4, y=LY+SY/4, z=LZ+SZ/4},
-     ets:select(O, [{'<', '$3', SX}, {'>=', '$4', SY}, {'>=', '$5', SZ}])}.
+    {#vector{x=LX-SX/4, y=LY+SY/4, z=LZ+SZ/4},
+     dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
+                     if X < SX andalso Y >= SY andalso Z >= SZ -> true; 
+                     true -> false end 
+                 end, O)}.
 
 pmm(O, SX, SY, SZ, LX, LY, LZ) ->
-    {#location{x=LX+SX/4, y=LY-SY/4, z=LZ-SZ/4},
-     ets:select(O, [{'>=', '$3', SX}, {'<', '$4', SY}, {'<', '$5', SZ}])}.
+    {#vector{x=LX+SX/4, y=LY-SY/4, z=LZ-SZ/4},
+     dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
+                     if X >= SX andalso Y < SY andalso Z < SZ -> true; 
+                     true -> false end 
+                 end, O)}.
 
 pmp(O, SX, SY, SZ, LX, LY, LZ) ->
-    {#location{x=LX+SX/4, y=LY-SY/4, z=LZ+SZ/4},
-     ets:select(O, [{'>=', '$3', SX}, {'<', '$4', SY}, {'>=', '$5', SZ}])}.
+    {#vector{x=LX+SX/4, y=LY-SY/4, z=LZ+SZ/4},
+     dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
+                     if X >= SX andalso Y < SY andalso Z >= SZ -> true; 
+                     true -> false end 
+                 end, O)}.
 
 ppm(O, SX, SY, SZ, LX, LY, LZ) ->
-    {#location{x=LX+SX/4, y=LY+SY/4, z=LZ-SZ/4},
-     ets:select(O, [{'>=', '$3', SX}, {'>=', '$4', SY}, {'<', '$5', SZ}])}.
+    {#vector{x=LX+SX/4, y=LY+SY/4, z=LZ-SZ/4},
+     dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
+                     if X >= SX andalso Y >= SY andalso Z < SZ -> true; 
+                     true -> false end 
+                 end, O)}.
 
 ppp(O, SX, SY, SZ, LX, LY, LZ) ->
-    {#location{x=LX+SX/4, y=LY+SY/4, z=LZ+SZ/4},
-     ets:select(O, [{'>=', '$3', SX}, {'>=', '$4', SY}, {'>=', '$5', SZ}])}.
-
+    {#vector{x=LX+SX/4, y=LY+SY/4, z=LZ+SZ/4},
+     dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
+                     if X >= SX andalso Y >= SY andalso Z >= SZ -> true; 
+                     true -> false end 
+                 end, O)}.

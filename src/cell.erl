@@ -43,9 +43,7 @@ init(#info{} = Info) ->
     cell(Info, Objects).
 
 % initializes child cell with predefined objects count
-init(#info{} = Info, ObjectsList) ->
-    Objects = dict:new(),
-    ets:insert(Objects, ObjectsList),
+init(#info{} = Info, Objects) ->
     cell(Info, Objects).
 
 % main loop for cell
@@ -124,13 +122,13 @@ meta(Info) ->
         N#navigation.pmp ! {status, self()},
         N#navigation.ppm ! {status, self()},
         N#navigation.ppp ! {status, self()},
-        io:format("meta end~n"),
         meta(Info);
     _ ->
         meta(Info)
     end.
 
 split(#info{s=#vector{x=X, y=Y, z=Z}} = Info, Objects) when X/4+Y/4+Z/4 >= ?MIN_CELL_SIZE ->
+    io:format("going to split~n"),
     Navigation = #navigation{mmm=create(mmm, Info, Objects),
                              mmp=create(mmp, Info, Objects),
                              mpm=create(mpm, Info, Objects),

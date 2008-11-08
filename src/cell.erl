@@ -19,13 +19,13 @@
 
 % size, location and object records
 -record(vector, {x, y, z}).
--record(object, {o, x, y, z}).
 
 -define(MAX_PER_CELL, 5).
+-define(MIN_CELL_SIZE, 500).
 
 % used to create root node
 create() ->
-    Info = #info{s=#vector{x=math:pow(2, 16), y=math:pow(2, 16), z=math:pow(2, 16)}, 
+    Info = #info{s=#vector{x=65000, y=65000, z=65000}, 
                  l=#vector{x=0.0, y=0.0, z=0.0}},
     spawn_link(?MODULE, init, [Info]).
 
@@ -70,7 +70,7 @@ cell(Info, Objects) ->
         cell(Info, NewObjects);
     {add, O, X, Y, Z} ->
         NewObjects = dict:store(O, #vector{x=X, y=Y, z=Z}, Objects),
-        Count = dict:size(Objects), 
+        Count = dict:size(Objects),
         if Count > ?MAX_PER_CELL -> split(Info, NewObjects);
                             true -> cell(Info, NewObjects)
         end;
@@ -114,13 +114,23 @@ meta(Info) ->
         % TODO: implement broadcasting to cells
         meta(Info);
     {status, From} ->
-        From ! {status, self(), Info},
+        io:format("meta, childrens: ~n"),
+        N = Info#info.n,
+        N#navigation.mmm ! {status, self()},
+        N#navigation.mmp ! {status, self()},
+        N#navigation.mpm ! {status, self()},
+        N#navigation.mpp ! {status, self()},
+        N#navigation.pmm ! {status, self()},
+        N#navigation.pmp ! {status, self()},
+        N#navigation.ppm ! {status, self()},
+        N#navigation.ppp ! {status, self()},
+        io:format("meta end~n"),
         meta(Info);
     _ ->
         meta(Info)
     end.
 
-split(Info, Objects) ->
+split(#info{s=#vector{x=X, y=Y, z=Z}} = Info, Objects) when X/4+Y/4+Z/4 >= ?MIN_CELL_SIZE ->
     Navigation = #navigation{mmm=create(mmm, Info, Objects),
                              mmp=create(mmp, Info, Objects),
                              mpm=create(mpm, Info, Objects),
@@ -129,7 +139,10 @@ split(Info, Objects) ->
                              pmp=create(pmp, Info, Objects),
                              ppm=create(ppm, Info, Objects),
                              ppp=create(ppp, Info, Objects)},
-    meta(Info#info{n=Navigation}).
+    meta(Info#info{n=Navigation});
+split(Info, Objects) ->
+    io:format("cell overloaded~n"),
+    cell(Info, Objects).
 
 mmm(O, SX, SY, SZ, LX, LY, LZ) ->
     {#vector{x=LX-SX/4, y=LY-SY/4, z=LZ-SZ/4},

@@ -105,8 +105,16 @@ cell(Info, Objects) ->
 meta(Info) ->
     receive
     {add, O, X, Y, Z} ->
+        Index = compare(X, (Info#info.l)#vector.x)*4 +
+                compare(X, (Info#info.l)#vector.x)*2 +
+                compare(X, (Info#info.l)#vector.x)*1 + 1,
+        erlang:element(Index, Info#info.n) ! {add, O, X, Y, Z},
         meta(Info);
     {set, O, X, Y, Z} ->
+        Index = compare(X, (Info#info.l)#vector.x)*4 +
+                compare(X, (Info#info.l)#vector.x)*2 +
+                compare(X, (Info#info.l)#vector.x)*1 + 1,
+        erlang:element(Index, Info#info.n) ! {set, O, X, Y, Z},
         meta(Info);
     {bc, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Message} ->
         % TODO: implement broadcasting to cells
@@ -197,3 +205,6 @@ ppp(O, SX, SY, SZ, LX, LY, LZ) ->
                      if X >= SX andalso Y >= SY andalso Z >= SZ -> true; 
                      true -> false end 
                  end, O)}.
+
+compare(X, Y) when X < Y -> 0;
+compare(_, _) -> 1.

@@ -72,25 +72,10 @@ cell(Info, Objects) ->
         if Count > ?MAX_PER_CELL -> split(Info, NewObjects);
                             true -> cell(Info, NewObjects)
         end;
-    {bc, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Message} ->
-        #info{l=#vector{x=LX, y=LY, z=LZ},
-              s=#vector{x=SX, y=SY, z=SZ}} = Info,
-        if LX-SX <  OX-RX orelse LY-SY <  OY-RY orelse LZ-SZ <  OZ-RZ orelse
-           LX+SX >= OX+RX orelse LY+SY >= OY+RY orelse LZ+SZ >= OZ+RZ ->
-            Info#info.p ! {bc, self(), O, R, Message};
-        true ->
-            ok
-        end,
-        InRange = dict:filter(fun(_, #vector{x=KX, y=KY, z=KZ}) ->
-                                  if KX < OX+RX andalso KX > OX-RX andalso
-                                     KY < OY+RY andalso KY > OY-RY andalso
-                                     KZ < OZ+RZ andalso KZ > OZ-RZ -> true;
-                                  true -> false
-                                  end 
-                              end, Objects),
-        dict:fold(fun(_, _, ok) -> 
-                      ok
-                  end, ok, InRange),
+    {bc, O, R, Message} ->
+        bc_up(Info, O, R, Message),
+        InRange = bc_inrange(O, R, Objects),
+        dict:fold(fun(K, _, ok) -> K ! Message, ok end, ok, InRange),
         cell(Info, Objects);
     {status, From} when From == Info#info.p ->
         io:format("cell, holding ~p~n", [dict:size(Objects)]),
@@ -118,6 +103,13 @@ meta(Info) ->
         meta(Info);
     {bc, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Message} ->
         % TODO: implement broadcasting to cells
+        bc_up(Info, O, R, Message),
+        bc_down(Info, O, R, Message),
+        meta(Info);
+    {bc, From, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Message} ->
+        % TODO: implement broadcasting to cells
+        bc_up(Info, O, R, Message),
+        bc_down(Info, From, O, R, Message),
         meta(Info);
     {status, From} ->
         io:format("meta, childrens: ~n"),
@@ -208,3 +200,29 @@ ppp(O, SX, SY, SZ, LX, LY, LZ) ->
 
 compare(X, Y) when X < Y -> 0;
 compare(_, _) -> 1.
+
+bc_up(Info, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Message) ->
+    #info{l=#vector{x=LX, y=LY, z=LZ},
+          s=#vector{x=SX, y=SY, z=SZ}} = Info,
+    if LX-SX <  OX-RX orelse LY-SY <  OY-RY orelse LZ-SZ <  OZ-RZ orelse
+       LX+SX >= OX+RX orelse LY+SY >= OY+RY orelse LZ+SZ >= OZ+RZ ->
+        Info#info.p ! {bc, self(), O, R, Message},
+        ok;
+    true ->
+        ok
+    end.
+
+bc_inrange(#vector{x=OX, y=OY, z=OZ}, #vector{x=RX, y=RY, z=RZ}, Objects) ->
+    dict:filter(fun(_, #vector{x=KX, y=KY, z=KZ}) ->
+                    if KX < OX+RX andalso KX > OX-RX andalso
+                       KY < OY+RY andalso KY > OY-RY andalso
+                       KZ < OZ+RZ andalso KZ > OZ-RZ -> true;
+                    true -> false
+                    end 
+                end, Objects).
+
+bc_down(Info, Object, Range, Message) ->
+    ok.
+
+bc_down(Info, Except, Object, Range, Message) ->
+    ok.

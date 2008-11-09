@@ -103,7 +103,6 @@ meta(Info) ->
         meta(Info);
     {bc, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Message} ->
         % TODO: implement broadcasting to cells
-        bc_up(Info, O, R, Message),
         bc_down(Info, O, R, Message),
         meta(Info);
     {bc, From, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Message} ->

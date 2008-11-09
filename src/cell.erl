@@ -119,13 +119,13 @@ meta(#info{p=Parent} = Info) ->
     {add, ObjectPid, X, Y, Z} ->
         Index = compare(X, (Info#info.l)#vector.x)*4 +
                 compare(X, (Info#info.l)#vector.x)*2 +
-                compare(X, (Info#info.l)#vector.x)*1 + 1,
+                compare(X, (Info#info.l)#vector.x)*1 + 2,
         erlang:element(Index, Info#info.n) ! {add, ObjectPid, X, Y, Z},
         meta(Info);
     {set, ObjectPid, X, Y, Z} ->
         Index = compare(X, (Info#info.l)#vector.x)*4 +
                 compare(X, (Info#info.l)#vector.x)*2 +
-                compare(X, (Info#info.l)#vector.x)*1 + 1,
+                compare(X, (Info#info.l)#vector.x)*1 + 2,
         erlang:element(Index, Info#info.n) ! {set, ObjectPid, X, Y, Z},
         meta(Info);
     {bcm, Parent, ObjectLocation, Range, Message} ->

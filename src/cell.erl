@@ -67,29 +67,29 @@ init(#info{} = Info, Objects) ->
 %   die: dispose objects storage and end process
 cell(#info{p=Parent} = Info, Objects) ->
     receive
-    {set, O, X, Y, Z} ->
-        NewObjects = dict:store(O, #vector{x=X, y=Y, z=Z}, Objects),
+    {set, ObjectPid, X, Y, Z} ->
+        NewObjects = dict:store(ObjectPid, #vector{x=X, y=Y, z=Z}, Objects),
         cell(Info, NewObjects);
-    {add, O, X, Y, Z} ->
-        NewObjects = dict:store(O, #vector{x=X, y=Y, z=Z}, Objects),
+    {add, ObjectPid, X, Y, Z} ->
+        NewObjects = dict:store(ObjectPid, #vector{x=X, y=Y, z=Z}, Objects),
         Count = dict:size(Objects),
         if Count > ?MAX_PER_CELL -> split(Info, NewObjects);
                             true -> cell(Info, NewObjects)
         end;
-    {bco, From, O, R, Message} ->
-        bc_up(Info, O, R, Message),
-        InRange = bc_inrange(From, O, R, Objects),
+    {bco, From, ObjectLocation, Range, Message} ->
+        bc_up(Info, ObjectLocation, Range, Message),
+        InRange = bc_inrange(From, ObjectLocation, Range, Objects),
         dict:fold(fun(K, _, ok) -> K ! Message, ok end, ok, InRange),
         cell(Info, Objects);
-    {bcm, Parent, O, R, Message} ->
-        bc_up(Info, O, R, Message),
-        InRange = bc_inrange(all, O, R, Objects),
+    {bcm, Parent, ObjectLocation, Range, Message} ->
+        bc_up(Info, ObjectLocation, Range, Message),
+        InRange = bc_inrange(all, ObjectLocation, Range, Objects),
         dict:fold(fun(K, _, ok) -> K ! Message, ok end, ok, InRange),
         cell(Info, Objects);
-    {status, From} when From == Info#info.p ->
+    {status, Parent} ->
         io:format("cell, holding ~p~n", [dict:size(Objects)]),
         cell(Info, Objects);
-    {die, From} when From == Info#info.p ->
+    {die, Parent} ->
         ok;
     _ ->
         cell(Info, Objects)
@@ -116,27 +116,27 @@ cell(#info{p=Parent} = Info, Objects) ->
 % TODO: merge meta-cell into one cell
 meta(#info{p=Parent} = Info) ->
     receive
-    {add, O, X, Y, Z} ->
+    {add, ObjectPid, X, Y, Z} ->
         Index = compare(X, (Info#info.l)#vector.x)*4 +
                 compare(X, (Info#info.l)#vector.x)*2 +
                 compare(X, (Info#info.l)#vector.x)*1 + 1,
-        erlang:element(Index, Info#info.n) ! {add, O, X, Y, Z},
+        erlang:element(Index, Info#info.n) ! {add, ObjectPid, X, Y, Z},
         meta(Info);
-    {set, O, X, Y, Z} ->
+    {set, ObjectPid, X, Y, Z} ->
         Index = compare(X, (Info#info.l)#vector.x)*4 +
                 compare(X, (Info#info.l)#vector.x)*2 +
                 compare(X, (Info#info.l)#vector.x)*1 + 1,
-        erlang:element(Index, Info#info.n) ! {set, O, X, Y, Z},
+        erlang:element(Index, Info#info.n) ! {set, ObjectPid, X, Y, Z},
         meta(Info);
-    {bcm, #info.p, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Message} ->
-        bc_down(Info, O, R, Message),
+    {bcm, Parent, ObjectLocation, Range, Message} ->
+        bc_down(Info, ObjectLocation, Range, Message),
         meta(Info);
-    {bcc, From, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Message} ->
-        bc_up(Info, O, R, Message),
-        bc_down(Info, From, O, R, Message),
+    {bcc, From, ObjectLocation, Range, Message} ->
+        bc_up(Info, ObjectLocation, Range, Message),
+        bc_down(Info, From, ObjectLocation, Range, Message),
         meta(Info);
-    {status, From} ->
-        io:format("meta, childrens: ~n"),
+    {status, Parent} ->
+        io:format("meta, children: ~n"),
         N = Info#info.n,
         N#navigation.mmm ! {status, self()},
         N#navigation.mmp ! {status, self()},
@@ -147,6 +147,17 @@ meta(#info{p=Parent} = Info) ->
         N#navigation.ppm ! {status, self()},
         N#navigation.ppp ! {status, self()},
         meta(Info);
+    {die, Parent} ->
+        N = Info#info.n,
+        N#navigation.mmm ! {die, self()},
+        N#navigation.mmp ! {die, self()},
+        N#navigation.mpm ! {die, self()},
+        N#navigation.mpp ! {die, self()},
+        N#navigation.pmm ! {die, self()},
+        N#navigation.pmp ! {die, self()},
+        N#navigation.ppm ! {die, self()},
+        N#navigation.ppp ! {die, self()},
+        ok;
     _ ->
         meta(Info)
     end.

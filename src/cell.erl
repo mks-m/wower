@@ -54,14 +54,18 @@ init(#info{} = Info, Objects) ->
 %
 %   set: updates object's coordinates
 %
-%   bc: broadcasts message from one object to others in 
-%       specified range also takes care of inter-cell 
-%       broadcasting when range goes out of cell bounds
+%   bco: broadcasts message from one object to others in 
+%        specified range also takes care of inter-cell 
+%        broadcasting when range goes out of cell bounds
+%
+%   bcm: broadcast message from meta cell. this can happen
+%        when cell is included in range of message received 
+%        by neibourgh cell
 %
 %   status: used for testing purposes
 %
 %   die: dispose objects storage and end process
-cell(Info, Objects) ->
+cell(#info{p=Parent} = Info, Objects) ->
     receive
     {set, O, X, Y, Z} ->
         NewObjects = dict:store(O, #vector{x=X, y=Y, z=Z}, Objects),
@@ -72,9 +76,14 @@ cell(Info, Objects) ->
         if Count > ?MAX_PER_CELL -> split(Info, NewObjects);
                             true -> cell(Info, NewObjects)
         end;
-    {bc, O, R, Message} ->
+    {bco, From, O, R, Message} ->
         bc_up(Info, O, R, Message),
-        InRange = bc_inrange(O, R, Objects),
+        InRange = bc_inrange(From, O, R, Objects),
+        dict:fold(fun(K, _, ok) -> K ! Message, ok end, ok, InRange),
+        cell(Info, Objects);
+    {bcm, Parent, O, R, Message} ->
+        bc_up(Info, O, R, Message),
+        InRange = bc_inrange(all, O, R, Objects),
         dict:fold(fun(K, _, ok) -> K ! Message, ok end, ok, InRange),
         cell(Info, Objects);
     {status, From} when From == Info#info.p ->
@@ -86,8 +95,26 @@ cell(Info, Objects) ->
         cell(Info, Objects)
     end.
 
+% main loop for cell
+% accepts next messages:
+%   add: adds object to keep an eye on
+%        also takes care of splitting cell into 8 more if 
+%        there's enough amount of objects added
+%
+%   set: updates object's coordinates
+%
+%   bcm: broadcast message from meta cell. this can happen
+%        when cell is included in range of message received 
+%        by neibourgh cell
+%
+%   bcc: broadcast message from child cell. this can happen
+%        when received message range goes out of cell space 
+%
+%   status: used for testing purposes
+%
+%   die: dispose objects storage and end process
 % TODO: merge meta-cell into one cell
-meta(Info) ->
+meta(#info{p=Parent} = Info) ->
     receive
     {add, O, X, Y, Z} ->
         Index = compare(X, (Info#info.l)#vector.x)*4 +
@@ -101,12 +128,10 @@ meta(Info) ->
                 compare(X, (Info#info.l)#vector.x)*1 + 1,
         erlang:element(Index, Info#info.n) ! {set, O, X, Y, Z},
         meta(Info);
-    {bc, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Message} ->
-        % TODO: implement broadcasting to cells
+    {bcm, #info.p, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Message} ->
         bc_down(Info, O, R, Message),
         meta(Info);
-    {bc, From, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Message} ->
-        % TODO: implement broadcasting to cells
+    {bcc, From, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Message} ->
         bc_up(Info, O, R, Message),
         bc_down(Info, From, O, R, Message),
         meta(Info);
@@ -211,9 +236,10 @@ bc_up(Info, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Messag
         ok
     end.
 
-bc_inrange(#vector{x=OX, y=OY, z=OZ}, #vector{x=RX, y=RY, z=RZ}, Objects) ->
-    dict:filter(fun(_, #vector{x=KX, y=KY, z=KZ}) ->
-                    if KX < OX+RX andalso KX > OX-RX andalso
+bc_inrange(From, #vector{x=OX, y=OY, z=OZ}, #vector{x=RX, y=RY, z=RZ}, Objects) ->
+    dict:filter(fun(K, #vector{x=KX, y=KY, z=KZ}) ->
+                    if From =/= K andalso
+                       KX < OX+RX andalso KX > OX-RX andalso
                        KY < OY+RY andalso KY > OY-RY andalso
                        KZ < OZ+RZ andalso KZ > OZ-RZ -> true;
                     true -> false

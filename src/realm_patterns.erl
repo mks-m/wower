@@ -37,6 +37,7 @@ smsg_auth_challenge(Seed) ->
 %% cstr      acount name
 %% byte N    session key
 cmsg_auth_session(<<Build?L?IN, _Unk?L, Rest/binary>>) ->
+    io:format("maybe there should be cleint version between name and key?~n"),
     {Account, Key} = cmsg_auth_session_extract(Rest, ""),
     {Build, Account, Key};
 cmsg_auth_session(_) ->

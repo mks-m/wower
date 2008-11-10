@@ -1,10 +1,7 @@
 % TODO: this will be oct-tree based process 
 %       pool for handling objects in region
 -module(cell).
--export([create/0, test/0,
-         init/1, init/2,
-         mmm/7, mmp/7, mpm/7, mpp/7,
-         pmm/7, pmp/7, ppm/7, ppp/7]).
+-export([create/0, test/0, init/1, init/2]).
 
 % general info about cell
 % p - parent cell
@@ -12,10 +9,6 @@
 % l - location of center of the cell
 % s - size of cell
 -record(info, {p, n, l, s}).
-
-% navigation record for meta-cell
--record(navigation, { mmm, mmp, mpm, mpp,
-                      pmm, pmp, ppm, ppp }).
 
 % size, location and object records
 -record(vector, {x, y, z}).
@@ -33,7 +26,7 @@ create() ->
 create(Bitmap, #info{s=#vector{x=SX, y=SY, z=SZ}, 
                      l=#vector{x=LX, y=LY, z=LZ}}, O) ->
     NS = #vector{x=SX/2, y=SY/2, z=SZ/2},
-    {NL, NO} = ?MODULE:Bitmap(O, SX, SY, SZ, LX, LY, LZ),
+    {NL, NO} = filter(Bitmap, O, SX, SY, SZ, LX, LY, LZ),
     spawn_link(?MODULE, init, [#info{p=self(), s=NS, l=NL}, NO]).
 
 % initializes root node
@@ -153,14 +146,14 @@ meta(#info{p=Parent} = Info) ->
     {status, Pid} when erlang:is_pid(Pid) ->
         io:format("meta, children: ~n"),
         N = Info#info.n,
-        rpc(N#navigation.mmm, status),
-        rpc(N#navigation.mmp, status),
-        rpc(N#navigation.mpm, status),
-        rpc(N#navigation.mpp, status),
-        rpc(N#navigation.pmm, status),
-        rpc(N#navigation.pmp, status),
-        rpc(N#navigation.ppm, status),
-        rpc(N#navigation.ppp, status),
+        rpc(element(1, N), status),
+        rpc(element(2, N), status),
+        rpc(element(3, N), status),
+        rpc(element(4, N), status),
+        rpc(element(5, N), status),
+        rpc(element(6, N), status),
+        rpc(element(7, N), status),
+        rpc(element(8, N), status),
         io:format("meta end~n~n"),
         Pid ! {self(), status, ok},
         meta(Info);
@@ -171,14 +164,14 @@ meta(#info{p=Parent} = Info) ->
     {die, Pid} when erlang:is_pid(Pid) ->
         io:format("meta, killing children: ~n"),
         N = Info#info.n,
-        rpc(N#navigation.mmm, die),
-        rpc(N#navigation.mmp, die),
-        rpc(N#navigation.mpm, die),
-        rpc(N#navigation.mpp, die),
-        rpc(N#navigation.pmm, die),
-        rpc(N#navigation.pmp, die),
-        rpc(N#navigation.ppm, die),
-        rpc(N#navigation.ppp, die),
+        rpc(element(1, N), die),
+        rpc(element(2, N), die),
+        rpc(element(3, N), die),
+        rpc(element(4, N), die),
+        rpc(element(5, N), die),
+        rpc(element(6, N), die),
+        rpc(element(7, N), die),
+        rpc(element(8, N), die),
         Pid ! {die, self(), ok},
         ok;
 
@@ -188,69 +181,62 @@ meta(#info{p=Parent} = Info) ->
 
 split(#info{s=#vector{x=X, y=Y, z=Z}} = Info, Objects) when X/4+Y/4+Z/4 >= ?MIN_CELL_SIZE ->
     io:format("going to split~n"),
-    Navigation = #navigation{mmm=create(mmm, Info, Objects),
-                             mmp=create(mmp, Info, Objects),
-                             mpm=create(mpm, Info, Objects),
-                             mpp=create(mpp, Info, Objects),
-                             pmm=create(pmm, Info, Objects),
-                             pmp=create(pmp, Info, Objects),
-                             ppm=create(ppm, Info, Objects),
-                             ppp=create(ppp, Info, Objects)},
+    Navigation = {create(1, Info, Objects),
+                  create(2, Info, Objects),
+                  create(3, Info, Objects),
+                  create(4, Info, Objects),
+                  create(5, Info, Objects),
+                  create(6, Info, Objects),
+                  create(7, Info, Objects),
+                  create(8, Info, Objects)},
     meta(Info#info{n=Navigation});
 split(Info, Objects) ->
     io:format("cell overloaded~n"),
     cell(Info, Objects).
 
-mmm(O, SX, SY, SZ, LX, LY, LZ) ->
+filter(1, O, SX, SY, SZ, LX, LY, LZ) ->
     {#vector{x=LX-SX/4, y=LY-SY/4, z=LZ-SZ/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
                      if X < LX andalso Y < LY andalso Z < LZ -> true; 
                      true -> false end 
-                 end, O)}.
-
-mmp(O, SX, SY, SZ, LX, LY, LZ) ->
+                 end, O)};
+filter(2, O, SX, SY, SZ, LX, LY, LZ) ->
     {#vector{x=LX-SX/4, y=LY-SY/4, z=LZ+SZ/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
                      if X < LX andalso Y < LY andalso Z >= LZ -> true; 
                      true -> false end 
-                 end, O)}.
-
-mpm(O, SX, SY, SZ, LX, LY, LZ) ->
+                 end, O)};
+filter(3, O, SX, SY, SZ, LX, LY, LZ) ->
     {#vector{x=LX-SX/4, y=LY+SY/4, z=LZ-SZ/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
                      if X < LX andalso Y >= LY andalso Z < LZ -> true; 
                      true -> false end 
-                 end, O)}.
-
-mpp(O, SX, SY, SZ, LX, LY, LZ) ->
+                 end, O)};
+filter(4, O, SX, SY, SZ, LX, LY, LZ) ->
     {#vector{x=LX-SX/4, y=LY+SY/4, z=LZ+SZ/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
                      if X < LX andalso Y >= LY andalso Z >= LZ -> true; 
                      true -> false end 
-                 end, O)}.
-
-pmm(O, SX, SY, SZ, LX, LY, LZ) ->
+                 end, O)};
+filter(5, O, SX, SY, SZ, LX, LY, LZ) ->
     {#vector{x=LX+SX/4, y=LY-SY/4, z=LZ-SZ/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
                      if X >= LX andalso Y < LY andalso Z < LZ -> true; 
                      true -> false end 
-                 end, O)}.
-
-pmp(O, SX, SY, SZ, LX, LY, LZ) ->
+                 end, O)};
+filter(6, O, SX, SY, SZ, LX, LY, LZ) ->
     {#vector{x=LX+SX/4, y=LY-SY/4, z=LZ+SZ/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
                      if X >= LX andalso Y < LY andalso Z >= LZ -> true; 
                      true -> false end 
-                 end, O)}.
-
-ppm(O, SX, SY, SZ, LX, LY, LZ) ->
+                 end, O)};
+filter(7, O, SX, SY, SZ, LX, LY, LZ) ->
     {#vector{x=LX+SX/4, y=LY+SY/4, z=LZ-SZ/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
                      if X >= LX andalso Y >= LY andalso Z < LZ -> true; 
                      true -> false end 
-                 end, O)}.
-
-ppp(O, SX, SY, SZ, LX, LY, LZ) ->
+                 end, O)};
+filter(8, O, SX, SY, SZ, LX, LY, LZ) ->
     {#vector{x=LX+SX/4, y=LY+SY/4, z=LZ+SZ/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
                      if X >= LX andalso Y >= LY andalso Z >= LZ -> true; 

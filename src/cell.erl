@@ -1,7 +1,7 @@
 % TODO: this will be oct-tree based process 
 %       pool for handling objects in region
 -module(cell).
--export([create/0,
+-export([create/0, test/0,
          init/1, init/2,
          mmm/7, mmp/7, mpm/7, mpp/7,
          pmm/7, pmp/7, ppm/7, ppp/7]).
@@ -81,15 +81,24 @@ cell(#info{p=Parent} = Info, Objects) ->
         InRange = bc_inrange(From, ObjectLocation, Range, Objects),
         dict:fold(fun(K, _, ok) -> K ! Message, ok end, ok, InRange),
         cell(Info, Objects);
-    {bcm, Parent, ObjectLocation, Range, Message} ->
+    {bcm, Parent, ObjectLocation, Range, Message} when is_pid(Parent) ->
         bc_up(Info, ObjectLocation, Range, Message),
         InRange = bc_inrange(all, ObjectLocation, Range, Objects),
         dict:fold(fun(K, _, ok) -> K ! Message, ok end, ok, InRange),
         cell(Info, Objects);
-    {status, Parent} ->
+    {status, undefined} ->
         io:format("cell, holding ~p~n", [dict:size(Objects)]),
         cell(Info, Objects);
-    {die, Parent} ->
+    {status, Pid} when erlang:is_pid(Pid) ->
+        io:format("cell, holding ~p~n", [dict:size(Objects)]),
+        Pid ! {status, self(), ok},
+        cell(Info, Objects);
+    {die, undefined} ->
+        io:format("dead~n"),
+        ok;
+    {die, Pid} ->
+        io:format("dead~n"),
+        Pid ! {status, self(), ok},
         ok;
     _ ->
         cell(Info, Objects)
@@ -118,46 +127,61 @@ meta(#info{p=Parent} = Info) ->
     receive
     {add, ObjectPid, X, Y, Z} ->
         Index = compare(X, (Info#info.l)#vector.x)*4 +
-                compare(X, (Info#info.l)#vector.x)*2 +
-                compare(X, (Info#info.l)#vector.x)*1 + 2,
+                compare(Y, (Info#info.l)#vector.y)*2 +
+                compare(Z, (Info#info.l)#vector.z)*1 + 2,
+        io:format("found ~p in ~p~n", [Index, Info#info.n]),
         erlang:element(Index, Info#info.n) ! {add, ObjectPid, X, Y, Z},
         meta(Info);
     {set, ObjectPid, X, Y, Z} ->
         Index = compare(X, (Info#info.l)#vector.x)*4 +
-                compare(X, (Info#info.l)#vector.x)*2 +
-                compare(X, (Info#info.l)#vector.x)*1 + 2,
+                compare(Y, (Info#info.l)#vector.y)*2 +
+                compare(Z, (Info#info.l)#vector.z)*1 + 2,
         erlang:element(Index, Info#info.n) ! {set, ObjectPid, X, Y, Z},
         meta(Info);
-    {bcm, Parent, ObjectLocation, Range, Message} ->
+
+    {bcm, Parent, ObjectLocation, Range, Message} when is_pid(Parent) ->
         bc_down(Info, ObjectLocation, Range, Message),
         meta(Info);
     {bcc, From, ObjectLocation, Range, Message} ->
         bc_up(Info, ObjectLocation, Range, Message),
         bc_down(Info, From, ObjectLocation, Range, Message),
         meta(Info);
-    {status, Parent} ->
+
+    {status, Pid} when Parent =/= undefined andalso Pid =/= Parent ->
+        io:format("unauthorized status request from ~p", [Pid]),
+        meta(Info);
+    {status, Pid} when erlang:is_pid(Pid) ->
         io:format("meta, children: ~n"),
         N = Info#info.n,
-        N#navigation.mmm ! {status, self()},
-        N#navigation.mmp ! {status, self()},
-        N#navigation.mpm ! {status, self()},
-        N#navigation.mpp ! {status, self()},
-        N#navigation.pmm ! {status, self()},
-        N#navigation.pmp ! {status, self()},
-        N#navigation.ppm ! {status, self()},
-        N#navigation.ppp ! {status, self()},
+        rpc(N#navigation.mmm, status),
+        rpc(N#navigation.mmp, status),
+        rpc(N#navigation.mpm, status),
+        rpc(N#navigation.mpp, status),
+        rpc(N#navigation.pmm, status),
+        rpc(N#navigation.pmp, status),
+        rpc(N#navigation.ppm, status),
+        rpc(N#navigation.ppp, status),
+        io:format("meta end~n~n"),
+        Pid ! {self(), status, ok},
         meta(Info);
-    {die, Parent} ->
+
+    {die, Pid} when Parent =/= undefined andalso Pid =/= Parent ->
+        io:format("unauthorized die request from ~p", [Pid]),
+        meta(Info);
+    {die, Pid} when erlang:is_pid(Pid) ->
+        io:format("meta, killing children: ~n"),
         N = Info#info.n,
-        N#navigation.mmm ! {die, self()},
-        N#navigation.mmp ! {die, self()},
-        N#navigation.mpm ! {die, self()},
-        N#navigation.mpp ! {die, self()},
-        N#navigation.pmm ! {die, self()},
-        N#navigation.pmp ! {die, self()},
-        N#navigation.ppm ! {die, self()},
-        N#navigation.ppp ! {die, self()},
+        rpc(N#navigation.mmm, die),
+        rpc(N#navigation.mmp, die),
+        rpc(N#navigation.mpm, die),
+        rpc(N#navigation.mpp, die),
+        rpc(N#navigation.pmm, die),
+        rpc(N#navigation.pmp, die),
+        rpc(N#navigation.ppm, die),
+        rpc(N#navigation.ppp, die),
+        Pid ! {die, self(), ok},
         ok;
+
     _ ->
         meta(Info)
     end.
@@ -180,56 +204,56 @@ split(Info, Objects) ->
 mmm(O, SX, SY, SZ, LX, LY, LZ) ->
     {#vector{x=LX-SX/4, y=LY-SY/4, z=LZ-SZ/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
-                     if X < SX andalso Y < SY andalso Z < SZ -> true; 
+                     if X < LX andalso Y < LY andalso Z < LZ -> true; 
                      true -> false end 
                  end, O)}.
 
 mmp(O, SX, SY, SZ, LX, LY, LZ) ->
     {#vector{x=LX-SX/4, y=LY-SY/4, z=LZ+SZ/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
-                     if X < SX andalso Y < SY andalso Z >= SZ -> true; 
+                     if X < LX andalso Y < LY andalso Z >= LZ -> true; 
                      true -> false end 
                  end, O)}.
 
 mpm(O, SX, SY, SZ, LX, LY, LZ) ->
     {#vector{x=LX-SX/4, y=LY+SY/4, z=LZ-SZ/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
-                     if X < SX andalso Y >= SY andalso Z < SZ -> true; 
+                     if X < LX andalso Y >= LY andalso Z < LZ -> true; 
                      true -> false end 
                  end, O)}.
 
 mpp(O, SX, SY, SZ, LX, LY, LZ) ->
     {#vector{x=LX-SX/4, y=LY+SY/4, z=LZ+SZ/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
-                     if X < SX andalso Y >= SY andalso Z >= SZ -> true; 
+                     if X < LX andalso Y >= LY andalso Z >= LZ -> true; 
                      true -> false end 
                  end, O)}.
 
 pmm(O, SX, SY, SZ, LX, LY, LZ) ->
     {#vector{x=LX+SX/4, y=LY-SY/4, z=LZ-SZ/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
-                     if X >= SX andalso Y < SY andalso Z < SZ -> true; 
+                     if X >= LX andalso Y < LY andalso Z < LZ -> true; 
                      true -> false end 
                  end, O)}.
 
 pmp(O, SX, SY, SZ, LX, LY, LZ) ->
     {#vector{x=LX+SX/4, y=LY-SY/4, z=LZ+SZ/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
-                     if X >= SX andalso Y < SY andalso Z >= SZ -> true; 
+                     if X >= LX andalso Y < LY andalso Z >= LZ -> true; 
                      true -> false end 
                  end, O)}.
 
 ppm(O, SX, SY, SZ, LX, LY, LZ) ->
     {#vector{x=LX+SX/4, y=LY+SY/4, z=LZ-SZ/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
-                     if X >= SX andalso Y >= SY andalso Z < SZ -> true; 
+                     if X >= LX andalso Y >= LY andalso Z < LZ -> true; 
                      true -> false end 
                  end, O)}.
 
 ppp(O, SX, SY, SZ, LX, LY, LZ) ->
     {#vector{x=LX+SX/4, y=LY+SY/4, z=LZ+SZ/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
-                     if X >= SX andalso Y >= SY andalso Z >= SZ -> true; 
+                     if X >= LX andalso Y >= LY andalso Z >= LZ -> true; 
                      true -> false end 
                  end, O)}.
 
@@ -262,3 +286,23 @@ bc_down(Info, Object, Range, Message) ->
 
 bc_down(Info, Except, Object, Range, Message) ->
     ok.
+
+rpc(C, M) ->
+    S = self(),
+    C ! {M, S},
+    receive 
+        {M, C, V} -> V
+    end.
+
+test() ->
+    C = cell:create(),
+    C ! {add, a, 1, 1, 1},
+    C ! {add, b, 1, 1, 1},
+    C ! {add, c, 1, 1, 1},
+    C ! {add, d, -1, 1, 1},
+    C ! {add, e, -1, -1, 1},
+    C ! {status, undefined},
+    C ! {add, h, -1, -1, -1},
+    C ! {add, f, -1, -1, -1},
+    C ! {status, self()},
+    C.

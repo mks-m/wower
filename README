@@ -4,7 +4,7 @@ wower is Erlang implementation of World of Warcraft server emulator.
 
 == Current status ==
 
-Targeting WoTLK 3.0.2.
+Working with WoTLK 3.0.3.
 
 === Logon server ===
 
@@ -16,3 +16,9 @@ Does not support patching.
 
 Accepts connections. Packet encryption/decryption implemented.
 Character list implemented. Login into world implemented.
+You can now run around with default character with some strange
+absolutely random display id.
+
+=== Working on ===
+
+Working on character creation and reading of DBC files.

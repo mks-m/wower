@@ -1,7 +1,7 @@
 % TODO: this will be oct-tree based process 
 %       pool for handling objects in region
 -module(cell).
--export([create/0, test/0, init/1, init/2]).
+-export([create/0, test/1, init/1, init/2]).
 
 % general info about cell
 % p - parent cell
@@ -69,6 +69,7 @@ cell(#info{p=Parent} = Info, Objects) ->
         if Count > ?MAX_PER_CELL -> split(Info, NewObjects);
                             true -> cell(Info, NewObjects)
         end;
+    
     {bco, From, ObjectLocation, Range, Message} ->
         bc_up(Info, ObjectLocation, Range, Message),
         InRange = bc_inrange(From, ObjectLocation, Range, Objects),
@@ -79,6 +80,7 @@ cell(#info{p=Parent} = Info, Objects) ->
         InRange = bc_inrange(all, ObjectLocation, Range, Objects),
         dict:fold(fun(K, _, ok) -> K ! Message, ok end, ok, InRange),
         cell(Info, Objects);
+    
     {status, undefined} ->
         io:format("cell, holding ~p~n", [dict:size(Objects)]),
         cell(Info, Objects);
@@ -86,6 +88,7 @@ cell(#info{p=Parent} = Info, Objects) ->
         io:format("cell, holding ~p~n", [dict:size(Objects)]),
         Pid ! {status, self(), ok},
         cell(Info, Objects);
+    
     {die, undefined} ->
         io:format("dead~n"),
         ok;
@@ -121,14 +124,14 @@ meta(#info{p=Parent} = Info) ->
     {add, ObjectPid, X, Y, Z} ->
         Index = compare(X, (Info#info.l)#vector.x)*4 +
                 compare(Y, (Info#info.l)#vector.y)*2 +
-                compare(Z, (Info#info.l)#vector.z)*1 + 2,
-        io:format("found ~p in ~p~n", [Index, Info#info.n]),
+                compare(Z, (Info#info.l)#vector.z)*1 + 1,
+        io:format("put into ~p~n", [Index]),
         erlang:element(Index, Info#info.n) ! {add, ObjectPid, X, Y, Z},
         meta(Info);
     {set, ObjectPid, X, Y, Z} ->
         Index = compare(X, (Info#info.l)#vector.x)*4 +
                 compare(Y, (Info#info.l)#vector.y)*2 +
-                compare(Z, (Info#info.l)#vector.z)*1 + 2,
+                compare(Z, (Info#info.l)#vector.z)*1 + 1,
         erlang:element(Index, Info#info.n) ! {set, ObjectPid, X, Y, Z},
         meta(Info);
 
@@ -155,7 +158,7 @@ meta(#info{p=Parent} = Info) ->
         rpc(element(7, N), status),
         rpc(element(8, N), status),
         io:format("meta end~n~n"),
-        Pid ! {self(), status, ok},
+        Pid ! {status, self(), ok},
         meta(Info);
 
     {die, Pid} when Parent =/= undefined andalso Pid =/= Parent ->
@@ -172,7 +175,7 @@ meta(#info{p=Parent} = Info) ->
         rpc(element(6, N), die),
         rpc(element(7, N), die),
         rpc(element(8, N), die),
-        Pid ! {die, self(), ok},
+        Pid ! {self(), die, ok},
         ok;
 
     _ ->
@@ -280,15 +283,12 @@ rpc(C, M) ->
         {M, C, V} -> V
     end.
 
-test() ->
+test(N) ->
     C = cell:create(),
-    C ! {add, a, 1, 1, 1},
-    C ! {add, b, 1, 1, 1},
-    C ! {add, c, 1, 1, 1},
-    C ! {add, d, -1, 1, 1},
-    C ! {add, e, -1, -1, 1},
-    C ! {status, undefined},
-    C ! {add, h, -1, -1, -1},
-    C ! {add, f, -1, -1, -1},
-    C ! {status, self()},
-    C.
+    test(N, C).
+
+test(0, C) ->
+    C;
+test(N, C) ->
+    C ! {add, random:uniform(), random:uniform(65000), random:uniform(65000), random:uniform(65000)},
+    test(N-1, C).

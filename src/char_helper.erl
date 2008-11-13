@@ -21,31 +21,42 @@ player_bytes1(#char{skin = S, face = F, hair_style = Hs, hair_color = Hc}) ->
 player_bytes2(#char{facial_hair = F}) ->
     <<F:8, 238:8, 0:8, 2:8>>.
 
-gender(male)   -> 0;
-gender(female) -> 1;
-gender(none)   -> 2.
+gender(male)   -> 0; gender(0) -> male;
+gender(female) -> 1; gender(1) -> female;
+gender(none)   -> 2; gender(2) -> none.
 
-race(human)     -> 1;
-race(orc)       -> 2;
-race(dwarf)     -> 3;
-race(night_elf) -> 4;
-race(undead)    -> 5;
-race(tauren)    -> 6;
-race(gnome)     -> 7;
-race(troll)     -> 8;
-race(bloodelf)  -> 10;
-race(draenei)   -> 11.
+race(human)     -> 1;  race(1)  -> human;
+race(orc)       -> 2;  race(2)  -> orc;
+race(dwarf)     -> 3;  race(3)  -> dwarf;
+race(night_elf) -> 4;  race(4)  -> night_elf;
+race(undead)    -> 5;  race(5)  -> undead;
+race(tauren)    -> 6;  race(6)  -> tauren;
+race(gnome)     -> 7;  race(7)  -> gnome;
+race(troll)     -> 8;  race(8)  -> troll;
+race(bloodelf)  -> 10; race(10) -> bloodelf;
+race(draenei)   -> 11; race(11) -> draenei.
 
-class(warrior)      -> 1;
-class(paladin)      -> 2;
-class(hunter)       -> 3;
-class(rogue)        -> 4;
-class(priest)       -> 5;
-class(death_knight) -> 6;
-class(shaman)       -> 7;
-class(mage)         -> 8;
-class(warlock)      -> 9;
-class(druid)        -> 11.
+class(warrior)      -> 1;  class(1)  -> warrior;
+class(paladin)      -> 2;  class(2)  -> paladin;
+class(hunter)       -> 3;  class(3)  -> hunter;
+class(rogue)        -> 4;  class(4)  -> rogue;
+class(priest)       -> 5;  class(5)  -> priest;
+class(death_knight) -> 6;  class(6)  -> death_knight;
+class(shaman)       -> 7;  class(7)  -> shaman;
+class(mage)         -> 8;  class(8)  -> mage;
+class(warlock)      -> 9;  class(9)  -> warlock;
+class(druid)        -> 11; class(11) -> druid.
+
+class_power(warrior)      -> rage;
+class_power(paladin)      -> mana;
+class_power(hunter)       -> mana;
+class_power(rogue)        -> energy;
+class_power(priest)       -> mana;
+class_power(death_knight) -> runic_power;
+class_power(shaman)       -> mana;
+class_power(mage)         -> mana;
+class_power(warlock)      -> mana;
+class_power(druid)        -> mana.
 
 reputation(hated)      -> 0;
 reputation(hostile)    -> 1;

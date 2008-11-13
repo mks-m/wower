@@ -46,6 +46,7 @@ install() ->
     create_accounts(),
     create_realms(),
     create_chars(),
+    dbc:import_all(),
     mnesia:stop(),
     ok.
 
@@ -66,14 +67,6 @@ create_realms() ->
                                      status     = 0, 
                                      address    = "127.0.0.1:8640", 
                                      population = 1.0, 
-                                     timezone   = 2}),
-    mnesia:dirty_write(realm, #realm{id = 2,
-                                     name       = "Test Realm (192.168.0.100)", 
-                                     icon       = 0, 
-                                     lock       = 0, 
-                                     status     = 0, 
-                                     address    = "192.168.0.100:8640", 
-                                     population = 1.0, 
                                      timezone   = 2}).
 
 create_chars() ->
@@ -83,10 +76,9 @@ create_chars() ->
                                    account_id     = 1, 
                                    realm_id       = 1, 
                                    name           = "Moo", 
-                                   race           = dwarf,
+                                   race           = human,
                                    class          = warrior,
                                    gender         = male,
-                                   power          = rage,
                                    skin           = 8,
                                    face           = 9,
                                    hair_style     = 4,

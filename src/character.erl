@@ -6,9 +6,11 @@
 
 -include("realm_records.hrl").
 -include("database_records.hrl").
+-include("dbc_records.hrl").
 
 -import(packet_helper, [make_cstring/1,
                         read_cstring/1]).
+-import(common_helper, [do/1]).
 
 % network defines
 -define(I, /unsigned-little-integer).
@@ -223,6 +225,8 @@ send_self(S, Char) ->
     UB = char_helper:unit_bytes(Char),
     PB1 = char_helper:player_bytes1(Char),
     PB2 = char_helper:player_bytes2(Char),
+    [RaceInfo] = do([X || X <- mnesia:table(dbc_chr_race), 
+                          X#dbc_chr_race.id =:= char_helper:race(Char#char.race)]),
     BitMask = update_fields:mask([{object, guid},
                                   {object, guid_2},
                                   {object, type},
@@ -303,5 +307,27 @@ cmsg_char_create(S, St, D) ->
     <<Race?B, Class?B, Gender?B, Skin?B,
       Face?B, HS?B, HC?B, FH?B,
       Outfit?B, Rest2/binary>> = Rest,
-    
+    Char = #char{id             = random:uniform(16#FFFFFFFF),
+                 account_id     = (S#client_state.account)#account.id,
+                 realm_id       = S#client_state.realm,
+                 name           = Name,
+                 race           = char_helper:race(Race), 
+                 gender         = char_helper:gender(Gender), 
+                 class          = char_helper:class(Class),
+                 power          = char_helper:power(char_helper:class_power(char_helper:class(Class))),
+                 skin           = Skin, 
+                 face           = Face, 
+                 hair_style     = HS, 
+                 hair_color     = HC, 
+                 facial_hair    = FH, 
+                 level          = 1,
+                 zone_id        = 1537,
+                 map_id         = 0,
+                 position_x     = -4845.324, 
+                 position_y     = -864.4747, 
+                 position_z     = 501.92309, 
+                 orientation    = 0.0,
+                 guild_id       = 0, 
+                 general_flags  = 16#10A00040, 
+                 at_login_flags = 0},
     St.

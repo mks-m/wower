@@ -7,7 +7,7 @@ read_cstring(Data) ->
 
 read_cstring(<<0:8/integer, Rest/binary>>, String) ->
     {lists:reverse(String), Rest};
-read_cstring(<<X:1/bytes, Rest/binary>>, String) ->
+read_cstring(<<X:8/integer, Rest/binary>>, String) ->
     read_cstring(Rest, [X|String]).
 
 make_cstring(String) ->

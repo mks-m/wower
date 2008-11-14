@@ -12,7 +12,7 @@ find(Id) ->
 equipment(_) ->
     lists:seq(1,20).
 
-unit_bytes(#char{race = R, class = C, gender = G, power = P}) ->
+unit_bytes(#char{race = R, class = C, gender = G, power_type = P}) ->
     <<(race(R)):8, (class(C)):8, (gender(G)):8, (power(P)):8>>.
 
 player_bytes1(#char{skin = S, face = F, hair_style = Hs, hair_color = Hc}) ->

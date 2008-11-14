@@ -7,6 +7,7 @@
 -include("realm_records.hrl").
 -include("database_records.hrl").
 -include("dbc_records.hrl").
+-include("more_records.hrl").
 
 -import(packet_helper, [make_cstring/1,
                         read_cstring/1]).
@@ -222,11 +223,9 @@ send_status(S) ->
 
 send_self(S, Char) ->
     GameTime = common_helper:ms_time(),
-    UB = char_helper:unit_bytes(Char),
+    UB  = char_helper:unit_bytes(Char),
     PB1 = char_helper:player_bytes1(Char),
     PB2 = char_helper:player_bytes2(Char),
-    [RaceInfo] = do([X || X <- mnesia:table(dbc_chr_race), 
-                          X#dbc_chr_race.id =:= char_helper:race(Char#char.race)]),
     BitMask = update_fields:mask([{object, guid},
                                   {object, guid_2},
                                   {object, type},
@@ -275,13 +274,13 @@ send_self(S, Char) ->
 
                (Char#char.id)?L, 0?L,    % player guid
                25?L,                     % player type
-               1.0?f,                    % scale
+               (Char#char.scale)?f,
                UB/binary,                % race, class, gender, power
-               1000?L,                   % health
-               1000?L,                   % max health
+               (Char#char.health)?L,
+               (Char#char.health)?L,     % max health
                (Char#char.level)?L,
-               4?L,                      % factiontemplate
-               60?L,                     % display ID
+               (Char#char.faction_template)?L,
+               (Char#char.display_id)?L,
                0?L,                      % dynamic flag (0 = alive)
                PB1/binary,               % skin, face, hair style, hair color
                PB2/binary                % facial hair, unknown
@@ -307,27 +306,48 @@ cmsg_char_create(S, St, D) ->
     <<Race?B, Class?B, Gender?B, Skin?B,
       Face?B, HS?B, HC?B, FH?B,
       Outfit?B, Rest2/binary>> = Rest,
-    Char = #char{id             = random:uniform(16#FFFFFFFF),
-                 account_id     = (S#client_state.account)#account.id,
-                 realm_id       = S#client_state.realm,
-                 name           = Name,
-                 race           = char_helper:race(Race), 
-                 gender         = char_helper:gender(Gender), 
-                 class          = char_helper:class(Class),
-                 power          = char_helper:power(char_helper:class_power(char_helper:class(Class))),
-                 skin           = Skin, 
-                 face           = Face, 
-                 hair_style     = HS, 
-                 hair_color     = HC, 
-                 facial_hair    = FH, 
-                 level          = 1,
-                 zone_id        = 1537,
-                 map_id         = 0,
-                 position_x     = -4845.324, 
-                 position_y     = -864.4747, 
-                 position_z     = 501.92309, 
-                 orientation    = 0.0,
-                 guild_id       = 0, 
-                 general_flags  = 16#10A00040, 
-                 at_login_flags = 0},
+    RaceName    = char_helper:race(Race),
+    ClassName   = char_helper:class(Class),
+    CreateInfo  = content:char_create_info(Race, Class),
+    GenderValue = Gender * if Race =:= 10 -> -1; true -> 1 end,
+    Char = #char{id               = random:uniform(16#FFFFFFFF),
+                 account_id       = (S#client_state.account)#account.id,
+                 realm_id         = S#client_state.realm,
+                 name             = Name,
+                 race             = RaceName, 
+                 gender           = char_helper:gender(Gender), 
+                 class            = ClassName,
+                 skin             = Skin, 
+                 face             = Face, 
+                 hair_style       = HS, 
+                 hair_color       = HC,
+                 facial_hair      = FH, 
+                 level            = 1,
+                 guild_id         = 0,
+                 general_flags    = 16#10A00040,
+                 at_login_flags   = 0,
+                 faction_template = CreateInfo#char_create_info.faction_template, 
+                 map_id           = CreateInfo#char_create_info.map_id, 
+                 zone_id          = CreateInfo#char_create_info.zone_id, 
+                 position_x       = CreateInfo#char_create_info.position_x, 
+                 position_y       = CreateInfo#char_create_info.position_y, 
+                 position_z       = CreateInfo#char_create_info.position_z, 
+                 orientation      = CreateInfo#char_create_info.orientation, 
+                 display_id       = CreateInfo#char_create_info.display_id + GenderValue, 
+                 strength         = CreateInfo#char_create_info.strength, 
+                 agility          = CreateInfo#char_create_info.agility,
+                 stamina          = CreateInfo#char_create_info.stamina, 
+                 intellect        = CreateInfo#char_create_info.intellect, 
+                 spirit           = CreateInfo#char_create_info.spirit, 
+                 health           = CreateInfo#char_create_info.health, 
+                 mana             = CreateInfo#char_create_info.mana, 
+                 focus            = CreateInfo#char_create_info.focus, 
+                 power            = CreateInfo#char_create_info.power, 
+                 power_type       = CreateInfo#char_create_info.power_type, 
+                 intro            = CreateInfo#char_create_info.intro,
+                 attack_power     = CreateInfo#char_create_info.attack_power, 
+                 min_dmg          = CreateInfo#char_create_info.min_dmg, 
+                 max_dmg          = CreateInfo#char_create_info.max_dmg, 
+                 scale            = CreateInfo#char_create_info.scale},
+    
     St.

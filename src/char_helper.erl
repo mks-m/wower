@@ -33,7 +33,7 @@ race(undead)    -> 5;  race(5)  -> undead;
 race(tauren)    -> 6;  race(6)  -> tauren;
 race(gnome)     -> 7;  race(7)  -> gnome;
 race(troll)     -> 8;  race(8)  -> troll;
-race(bloodelf)  -> 10; race(10) -> bloodelf;
+race(blood_elf) -> 10; race(10) -> blood_elf;
 race(draenei)   -> 11; race(11) -> draenei.
 
 class(warrior)      -> 1;  class(1)  -> warrior;
@@ -46,17 +46,6 @@ class(shaman)       -> 7;  class(7)  -> shaman;
 class(mage)         -> 8;  class(8)  -> mage;
 class(warlock)      -> 9;  class(9)  -> warlock;
 class(druid)        -> 11; class(11) -> druid.
-
-class_power(warrior)      -> rage;
-class_power(paladin)      -> mana;
-class_power(hunter)       -> mana;
-class_power(rogue)        -> energy;
-class_power(priest)       -> mana;
-class_power(death_knight) -> runic_power;
-class_power(shaman)       -> mana;
-class_power(mage)         -> mana;
-class_power(warlock)      -> mana;
-class_power(druid)        -> mana.
 
 reputation(hated)      -> 0;
 reputation(hostile)    -> 1;

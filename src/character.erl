@@ -222,10 +222,16 @@ send_status(S) ->
     ok.
 
 send_self(S, Char) ->
+    Fields   = update_fields:create(player),
     GameTime = common_helper:ms_time(),
-    UB  = char_helper:unit_bytes(Char),
-    PB1 = char_helper:player_bytes1(Char),
-    PB2 = char_helper:player_bytes2(Char),
+    io:format("generating bytes~n"),
+    UB  = char_helper:unit_bytes_0(Char),
+    F1  = update_fields:seti(player, bytes_0, Fields, UB),
+    PB1 = char_helper:player_bytes(Char),
+    F2  = update_fields:seti(player, player_bytes, F1, UB),
+    PB2 = char_helper:player_bytes_2(Char),
+    F3  = update_fields:seti(player, player_bytes_2, F2, UB),
+    io:format("done generating bytes~n"),
     BitMask = update_fields:mask([{object, guid},
                                   {object, guid_2},
                                   {object, type},
@@ -275,15 +281,15 @@ send_self(S, Char) ->
                (Char#char.id)?L, 0?L,    % player guid
                25?L,                     % player type
                (Char#char.scale)?f,
-               UB/binary,                % race, class, gender, power
+               UB?L,                     % race, class, gender, power
                (Char#char.health)?L,
                (Char#char.health)?L,     % max health
                (Char#char.level)?L,
                (Char#char.faction_template)?L,
                (Char#char.display_id)?L,
                0?L,                      % dynamic flag (0 = alive)
-               PB1/binary,               % skin, face, hair style, hair color
-               PB2/binary                % facial hair, unknown
+               PB1?L,                    % skin, face, hair style, hair color
+               PB2?L                     % facial hair, unknown
                >>,
     S ! {self(), smsg_update_object, Update},
     ok.
@@ -349,5 +355,5 @@ cmsg_char_create(S, St, D) ->
                  min_dmg          = CreateInfo#char_create_info.min_dmg, 
                  max_dmg          = CreateInfo#char_create_info.max_dmg, 
                  scale            = CreateInfo#char_create_info.scale},
-    
+    ok = mnesia:dirty_write(Char),
     St.

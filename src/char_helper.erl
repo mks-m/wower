@@ -12,14 +12,17 @@ find(Id) ->
 equipment(_) ->
     lists:seq(1,20).
 
-unit_bytes(#char{race = R, class = C, gender = G, power_type = P}) ->
-    <<(race(R)):8, (class(C)):8, (gender(G)):8, (power(P)):8>>.
+unit_bytes_0(#char{race = R, class = C, gender = G, power_type = P}) ->
+    <<UB:32/integer-little>> = <<(race(R)):8, (class(C)):8, (gender(G)):8, (power(P)):8>>,
+    UB.
 
-player_bytes1(#char{skin = S, face = F, hair_style = Hs, hair_color = Hc}) ->
-    <<S:8, F:8, Hs:8, Hc:8>>.
+player_bytes(#char{skin = S, face = F, hair_style = Hs, hair_color = Hc}) ->
+    <<PB:32/integer-little>> = <<S:8, F:8, Hs:8, Hc:8>>,
+    PB.
 
-player_bytes2(#char{facial_hair = F}) ->
-    <<F:8, 238:8, 0:8, 2:8>>.
+player_bytes_2(#char{facial_hair = F}) ->
+    <<PB:32/integer-little>> = <<F:8, 238:8, 0:8, 2:8>>,
+    PB.
 
 gender(male)   -> 0; gender(0) -> male;
 gender(female) -> 1; gender(1) -> female;

@@ -1,15 +1,52 @@
 -module(update_fields).
--compile(export_all).
 -import(common_helper, [min/2, max/2]).
 
-map(object) -> [];
-map(unit) -> [object];
-map(player) -> [object, unit];
-map(item) -> [object];
-map(container) -> [object, item];
-map(dynamic_object) -> [object];
-map(game_object) -> [object];
-map(corpse) -> [object].
+-export([getf/3, setf/4, geti/3, seti/4, field/2, mask/1,
+         object/1, unit/1, player/1, item/1, container/1, 
+         dynamic_object/1, game_object/1, corpse/1, create/1]).
+
+create(T) ->
+    << <<0:32/integer>> || _ <- lists:seq(1, ?MODULE:T(last)) >>.
+
+getf(T, F, B) ->
+    I = (field(T, F) - 1) * 4,
+    <<_:I/binary, X:32/float-little, _/binary>> = B,
+    X.
+
+geti(T, F, B) ->
+    I = (field(T, F) - 1) * 4,
+    <<_:I/binary, X:32/integer-little, _/binary>> = B,
+    X.
+
+setf(T, F, B, V) ->
+    I = (field(T, F) - 1) * 4,
+    {B1, <<_:32/float-little, B2/binary>>} = erlang:split_binary(B, I),
+    <<B1/binary, V:32/float-little, B2/binary>>.
+
+seti(T, F, B, V) ->
+    I = (field(T, F) - 1) * 4,
+    io:format("setting ~p:~p to ~p at index ~p~n", [T, F, V, I div 4]),
+    {B1, <<_:32/integer-little, B2/binary>>} = erlang:split_binary(B, I),
+    <<B1/binary, V:32/integer-little, B2/binary>>.
+
+field(object, F) ->
+    io:format("field only for object: ~p~n", [F]),
+    object(F);
+field(T, F) ->
+    io:format("field for ~p: ~p~n", [T, F]),
+    case field(before(T), F) of
+        0 -> ?MODULE:T(F);
+        X -> X
+    end.
+
+before(object)         -> wrong;
+before(unit)           -> object;
+before(player)         -> unit;
+before(item)           -> object;
+before(container)      -> item;
+before(dynamic_object) -> object;
+before(game_object)    -> object;
+before(corpse)         -> object.
 
 % list of {type, flag} tuples
 mask(List) -> mask(List, <<>>).
@@ -41,17 +78,13 @@ switch(Bit, _, Rest, Ready) ->
                  PostByte/binary>>,
     mask(Rest, NewReady).
 
-test() ->
-    1 = size(mask([{object, guid}])) div 4,
-    18 = size(mask([{player, visible_item_17_0_7}, {object, guid}])) div 4,
-    ok.
-
 object(guid) -> 1;
 object(guid_2) -> 2;
 object(type) -> 3;
 object(entry) -> 4;
 object(scale_x) -> 5;
 object(padding) -> 6;
+object(last) -> 6;
 object(Any) ->
     io:format("wrong update_field for object: ~p~n", [Any]),
     0.
@@ -198,6 +231,7 @@ unit(power_cost_multiplier_7) -> 145;
 unit(maxhealthmodifier) -> 146;
 unit(hoverheight) -> 147;
 unit(padding) -> 148;
+unit(last) -> 148;
 unit(Any) ->
     io:format("wrong update_field for unit: ~p~n", [Any]),
     0.
@@ -1754,6 +1788,7 @@ player(glyphs_1_6) -> 1697;
 player(glyphs_1_7) -> 1698;
 player(glyphs_1_8) -> 1699;
 player(glyphs_enabled) -> 1700;
+player(last) -> 1700;
 player(Any) ->
     io:format("wrong update_field for player: ~p~n", [Any]),
     0.
@@ -1816,6 +1851,7 @@ item(item_text_id) -> 61;
 item(durability) -> 62;
 item(maxdurability) -> 63;
 item(pad) -> 64;
+item(last) -> 64;
 item(Any) ->
     io:format("wrong update_field for item: ~p~n", [Any]),
     0.
@@ -1894,6 +1930,7 @@ container(slot_1_69) -> 135;
 container(slot_1_70) -> 136;
 container(slot_1_71) -> 137;
 container(slot_1_72) -> 138;
+container(last) -> 138;
 container(Any) ->
     io:format("wrong update_field for container: ~p~n", [Any]),
     0.
@@ -1908,6 +1945,7 @@ dynamic_object(pos_y) -> 13;
 dynamic_object(pos_z) -> 14;
 dynamic_object(facing) -> 15;
 dynamic_object(casttime) -> 16;
+dynamic_object(last) -> 16;
 dynamic_object(Any) ->
     io:format("wrong update_field for dynamic_object: ~p~n", [Any]),
     0.
@@ -1930,6 +1968,7 @@ game_object(dynamic) -> 21;
 game_object(faction) -> 22;
 game_object(level) -> 23;
 game_object(bytes_1) -> 24;
+game_object(last) -> 24;
 game_object(Any) ->
     io:format("wrong update_field for game_object: ~p~n", [Any]),
     0.
@@ -1968,6 +2007,7 @@ corpse(guild) -> 37;
 corpse(flags) -> 38;
 corpse(dynamic_flags) -> 39;
 corpse(pad) -> 40;
+corpse(last) -> 40;
 corpse(Any) ->
     io:format("wrong update_field for corpse: ~p~n", [Any]),
     0.

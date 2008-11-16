@@ -224,14 +224,12 @@ send_status(S) ->
 send_self(S, Char) ->
     Fields   = update_fields:create(player),
     GameTime = common_helper:ms_time(),
-    io:format("generating bytes~n"),
     UB  = char_helper:unit_bytes_0(Char),
     F1  = update_fields:seti(player, bytes_0, Fields, UB),
     PB1 = char_helper:player_bytes(Char),
     F2  = update_fields:seti(player, player_bytes, F1, UB),
     PB2 = char_helper:player_bytes_2(Char),
     F3  = update_fields:seti(player, player_bytes_2, F2, UB),
-    io:format("done generating bytes~n"),
     BitMask = update_fields:mask([{object, guid},
                                   {object, guid_2},
                                   {object, type},
@@ -307,18 +305,18 @@ cmsg_char_enum(S, St, _) ->
     S ! {self(), smsg_char_enum, Data},
     St.
 
-cmsg_char_create(S, St, D) ->
+cmsg_char_create(S, #client_state{account = Account, realm = Realm} = St, D) ->
     {Name, Rest} = read_cstring(D),
     <<Race?B, Class?B, Gender?B, Skin?B,
       Face?B, HS?B, HC?B, FH?B,
       Outfit?B, Rest2/binary>> = Rest,
     RaceName    = char_helper:race(Race),
     ClassName   = char_helper:class(Class),
-    CreateInfo  = content:char_create_info(Race, Class),
+    CreateInfo  = content:char_create_info(RaceName, ClassName),
     GenderValue = Gender * if Race =:= 10 -> -1; true -> 1 end,
     Char = #char{id               = random:uniform(16#FFFFFFFF),
-                 account_id       = (S#client_state.account)#account.id,
-                 realm_id         = S#client_state.realm,
+                 account_id       = Account,
+                 realm_id         = Realm,
                  name             = Name,
                  race             = RaceName, 
                  gender           = char_helper:gender(Gender), 
@@ -356,4 +354,5 @@ cmsg_char_create(S, St, D) ->
                  max_dmg          = CreateInfo#char_create_info.max_dmg, 
                  scale            = CreateInfo#char_create_info.scale},
     ok = mnesia:dirty_write(Char),
+    S ! {self(), smsg_char_create, <<16#2f:8/integer>>},
     St.

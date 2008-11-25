@@ -122,16 +122,12 @@ cell(#info{p=Parent} = Info, Objects) ->
 meta(#info{p=Parent} = Info) ->
     receive
     {add, ObjectPid, X, Y, Z} ->
-        Index = compare(X, (Info#info.l)#vector.x)*4 +
-                compare(Y, (Info#info.l)#vector.y)*2 +
-                compare(Z, (Info#info.l)#vector.z)*1 + 1,
+        Index = index(#vector{x=X, y=Y, z=Z}, (Info#info.l)#vector.x),
         io:format("put into ~p~n", [Index]),
         erlang:element(Index, Info#info.n) ! {add, ObjectPid, X, Y, Z},
         meta(Info);
     {set, ObjectPid, X, Y, Z} ->
-        Index = compare(X, (Info#info.l)#vector.x)*4 +
-                compare(Y, (Info#info.l)#vector.y)*2 +
-                compare(Z, (Info#info.l)#vector.z)*1 + 1,
+        Index = index(#vector{x=X, y=Y, z=Z}, (Info#info.l)#vector.x),
         erlang:element(Index, Info#info.n) ! {set, ObjectPid, X, Y, Z},
         meta(Info);
 
@@ -248,6 +244,12 @@ filter(8, O, SX, SY, SZ, LX, LY, LZ) ->
 
 compare(X, Y) when X < Y -> 0;
 compare(_, _) -> 1.
+
+index(#vector{x=X1, y=Y1, z=Z1}, 
+      #vector{x=X2, y=Y2, z=Z2}) ->
+    index(compare(X1, X2), compare(Y1, Y2), compare(Z1, Z2));
+index(X, Y, Z) ->
+    X * 4 + Y * 2 + Z + 1.
 
 bc_up(Info, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Message) ->
     #info{l=#vector{x=LX, y=LY, z=LZ},

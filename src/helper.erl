@@ -28,6 +28,7 @@ restart(Method) ->
 compile() ->
     c:c(logon_server),
     c:c(realm_server),
+    c:c(dbc),
     logon_server:compile(),
     realm_server:compile(),
     ok.
@@ -35,6 +36,7 @@ compile() ->
 load() ->
     c:l(logon_server),
     c:l(realm_server),
+    c:l(dbc),
     logon_server:load(),
     realm_server:load(),
     ok.

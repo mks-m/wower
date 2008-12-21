@@ -247,7 +247,8 @@ compare(_, _) -> 1.
 
 index(#vector{x=X1, y=Y1, z=Z1}, 
       #vector{x=X2, y=Y2, z=Z2}) ->
-    index(compare(X1, X2), compare(Y1, Y2), compare(Z1, Z2));
+    index(compare(X1, X2), compare(Y1, Y2), compare(Z1, Z2)).
+
 index(X, Y, Z) ->
     X * 4 + Y * 2 + Z + 1.
 

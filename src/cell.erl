@@ -287,10 +287,41 @@ rpc(C, M) ->
 
 test(N) ->
     C = cell:create(),
-    test(N, C).
+    test(N, C),
+    C ! {bcm, undefined, #vector{x=0, y=0, z=0}, 32500, talk}.
 
 test(0, C) ->
     C;
 test(N, C) ->
-    C ! {add, random:uniform(), random:uniform(65000), random:uniform(65000), random:uniform(65000)},
+    V = #vector{x = random:uniform(65000),
+                y = random:uniform(65000),
+                z = random:uniform(65000)},
+    C ! {add, spawn(?MODULE, tester, [C, V]),
+              V#vector.x, V#vector.y, V#vector.z},
     test(N-1, C).
+
+tester(Cell, Vector) ->
+    receive
+    talk ->
+        tester(Cell, Vector, 0)
+    end.
+
+tester(Cell, #vector{x=X, y=Y, z=Z}, Count) ->
+    V = #vector{x=X+uniform:random(),
+                y=Y+uniform:random(),
+                z=Z+uniform:random()},
+    receive
+    {Cell, rpc} ->
+        Cell ! ok,
+        Cell ! {set, self(), V#vector.x, V#vector.y, V#vector.z},
+        tester(Cell, V, Count);
+    {Cell, ok} ->
+        Cell ! {set, self(), V#vector.x, V#vector.y, V#vector.z},
+        tester(Cell, Count+1);
+    {From, die} ->
+        From ! {self(), Count},
+        dead
+    end.
+
+wait(N) ->
+    receive after N -> ok end.

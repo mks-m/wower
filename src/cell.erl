@@ -25,7 +25,7 @@ world() ->
     Maps = dict:from_list([{  0, create()},   % Eastern Kingdoms
                            {  1, create()},   % Kalimdor
                            {501, create()},   % Outland
-                           {901, create()}]), % Northrend (wrong for now)
+                           {571, create()}]), % Northrend
     world(Maps).
 
 world(Maps) ->

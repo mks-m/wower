@@ -22,11 +22,13 @@ start() ->
     ok.
 
 world() ->
-    Maps = dict:new(),
+    Maps = dict:from_list([{  0, create()},   % Eastern Kingdoms
+                           {  1, create()},   % Kalimdor
+                           {501, create()},   % Outland
+                           {901, create()}]), % Northrend (wrong for now)
     world(Maps).
 
 world(Maps) ->
-    %% TODO: initialize default maps here (Kalimdor, EK, Outland, Northrend)
     receive
     {From, find, MapId} ->
         From ! {world, found, dict:get(MapId)},

@@ -49,7 +49,7 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         {ok, CharId} = realm_patterns:cmsg_player_login(D),
         Char = char_helper:find(CharId),
         ok = set_dungeon_difficulty(S, -1),
-        ok = verify_world(S, Char),
+        MapPid = verify_world(S, Char),
         ok = send_account_data(S),
         ok = set_rest_start(S),
         ok = set_tutorial_flags(S),
@@ -61,7 +61,7 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         ok = send_self(S, Char),
         put(tick_count, 0),
         io:format("entering world loop~n"),
-        in_world(State#client_state{char=Char});
+        in_world(State#client_state{current_map=MapPid, char=Char});
 
     {R, {M, F}, Data} ->
         C1 = erlang:module_loaded(M),
@@ -185,7 +185,11 @@ verify_world(S, Char) ->
           <<(Char#char.map_id)?f, (Char#char.position_x)?f, 
             (Char#char.position_y)?f, (Char#char.position_z)?f,
             (Char#char.orientation)?f>> },
-    ok.
+    world ! {self(), find, Char#char.map_id},
+    receive 
+    {world, found, MapPid} ->
+        MapPid
+    end.
 
 send_account_data(S) ->
     S ! {self(), smsg_account_data_times, <<0:1024>>},

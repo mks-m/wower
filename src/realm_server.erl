@@ -9,6 +9,7 @@ start() ->
     crypto:start(),
     mnesia:start(),
     mnesia:wait_for_tables([account, realm, character], 1000),
+    cell:start(),
     tcp_server:start(?MODULE, 8640, {?MODULE, loop}).
 
 stop() ->

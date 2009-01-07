@@ -28,6 +28,9 @@ world() ->
 world(Maps) ->
     %% TODO: initialize default maps here (Kalimdor, EK, Outland, Northrend)
     receive
+    {From, find, MapId} ->
+        From ! {world, found, dict:get(MapId)},
+        world(Maps);
     stop ->
         dict:map(fun(_,V) -> V ! {die, undefined} end),
         ok;

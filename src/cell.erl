@@ -1,7 +1,7 @@
 % TODO: this will be oct-tree based process 
 %       pool for handling objects in region
 -module(cell).
--export([create/0, test/1, init/1, init/2]).
+-export([start/0, stop/0, world/0, test/1, init/1, init/2]).
 
 % general info about cell
 % p - parent cell
@@ -15,6 +15,30 @@
 
 -define(MAX_PER_CELL, 5).
 -define(MIN_CELL_SIZE, 500).
+
+start() ->
+    Pid = spawn(?MODULE, world, []),
+    register(world, Pid),
+    ok.
+
+world() ->
+    Maps = dict:new(),
+    world(Maps).
+
+world(Maps) ->
+    %% TODO: initialize default maps here (Kalimdor, EK, Outland, Northrend)
+    receive
+    stop ->
+        dict:map(fun(_,V) -> V ! {die, undefined} end),
+        ok;
+       _ ->
+        world(Grids)
+    end.
+
+
+stop() ->
+    world ! stop,
+    ok.
 
 % used to create root node
 create() ->

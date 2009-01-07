@@ -1,7 +1,7 @@
 % TODO: this will be oct-tree based process 
 %       pool for handling objects in region
 -module(cell).
--export([start/0, stop/0, world/0, test/1, init/1, init/2]).
+-export([start/0, stop/0, world/0, create/0, test/1, init/1, init/2]).
 
 % general info about cell
 % p - parent cell
@@ -108,7 +108,7 @@ cell(#info{p=Parent} = Info, Objects) ->
     {status, undefined} ->
         io:format("cell, holding ~p~n", [dict:size(Objects)]),
         cell(Info, Objects);
-    {status, Pid} when erlang:is_pid(Pid) ->
+    {status, Pid} ->
         io:format("cell, holding ~p~n", [dict:size(Objects)]),
         Pid ! {status, self(), ok},
         cell(Info, Objects);
@@ -120,6 +120,7 @@ cell(#info{p=Parent} = Info, Objects) ->
         io:format("dead~n"),
         Pid ! {status, self(), ok},
         ok;
+    
     _ ->
         cell(Info, Objects)
     end.
@@ -162,11 +163,8 @@ meta(#info{p=Parent} = Info) ->
         bc_up(Info, ObjectLocation, Range, Message),
         bc_down(Info, From, ObjectLocation, Range, Message),
         meta(Info);
-
-    {status, Pid} when Parent =/= undefined andalso Pid =/= Parent ->
-        io:format("unauthorized status request from ~p", [Pid]),
-        meta(Info);
-    {status, Pid} when erlang:is_pid(Pid) ->
+    
+    {status, Pid} ->
         io:format("meta, children: ~n"),
         N = Info#info.n,
         rpc(element(1, N), status),
@@ -181,10 +179,7 @@ meta(#info{p=Parent} = Info) ->
         Pid ! {status, self(), ok},
         meta(Info);
 
-    {die, Pid} when Parent =/= undefined andalso Pid =/= Parent ->
-        io:format("unauthorized die request from ~p", [Pid]),
-        meta(Info);
-    {die, Pid} when erlang:is_pid(Pid) ->
+    {die, Pid} ->
         io:format("meta, killing children: ~n"),
         N = Info#info.n,
         rpc(element(1, N), die),

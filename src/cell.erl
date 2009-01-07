@@ -32,7 +32,7 @@ world(Maps) ->
         dict:map(fun(_,V) -> V ! {die, undefined} end),
         ok;
        _ ->
-        world(Grids)
+        world(Maps)
     end.
 
 

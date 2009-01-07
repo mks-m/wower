@@ -5,6 +5,9 @@
 -include("realm_records.hrl").
 -include("database_records.hrl").
 
+main(["install"]) ->
+    install(),
+    start();
 main(_) ->
     start().
 

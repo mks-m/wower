@@ -19,6 +19,22 @@ Character list implemented. Login into world implemented.
 You can now run around with default character with some strange
 absolutely random display id.
 
+Creating character works. Importing DBC files works. Cell system 
+works.
+
+=== Get started ===
+
+1. Install Erlang
+2. Get sources
+3. Run `erl -make`
+4. Go to ebin folder
+5. Run `erl -run helper install`
+6. Run `erl -run helper` without 'install' option if you don't
+   want database re-created and DBC files re-imported.
+
+You must have correct(>= 3.0.3) DBC files in ebin/dbc folder to
+start server properly.
+
 === Working on ===
 
-Working on character creation and reading of DBC files.
+Moving packets.

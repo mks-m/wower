@@ -20,11 +20,11 @@ game_time() ->
 
 ms_time() ->
     {Mega, Seconds, Micro} = erlang:now(),
-    Mega * 1000 + Seconds + Micro div 1000.
+    Mega * 1000000000 + Seconds * 1000 + Micro div 1000.
 
 unix_time() ->
     {Mega, Seconds, _} = erlang:now(),
-    Mega * 1000 + Seconds.
+    Mega * 1000000 + Seconds.
 
 min(X, Y) when X < Y -> X;
 min(_, Y) -> Y.

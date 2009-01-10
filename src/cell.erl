@@ -31,12 +31,13 @@ world() ->
 world(Maps) ->
     receive
     {From, find, MapId} ->
-        From ! {world, found, dict:get(MapId)},
+        {ok, MapPid} = dict:find(MapId, Maps),
+        From ! {world, found, MapPid},
         world(Maps);
     stop ->
-        dict:map(fun(_,V) -> V ! {die, undefined} end),
+        dict:map(fun(_,V) -> V ! {die, undefined} end, Maps),
         ok;
-       _ ->
+    _ ->
         world(Maps)
     end.
 
@@ -60,7 +61,6 @@ create(Bitmap, #info{s=#vector{x=SX, y=SY, z=SZ},
 
 % initializes root node
 init(#info{} = Info) ->
-    io:format("node started:~nsize: ~p~nlocn: ~p~n", [Info#info.s, Info#info.l]),
     Objects = dict:new(),
     cell(Info, Objects).
 

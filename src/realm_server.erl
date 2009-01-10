@@ -10,7 +10,9 @@ start() ->
     mnesia:start(),
     mnesia:wait_for_tables([account, realm, character], 1000),
     cell:start(),
-    tcp_server:start(?MODULE, 8640, {?MODULE, loop}).
+    tcp_server:start(?MODULE, 8640, {?MODULE, loop}),
+    io:format("realm server started ~n", []),
+    ok.
 
 stop() ->
     gen_server:call(?MODULE, stop).

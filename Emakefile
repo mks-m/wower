@@ -20,3 +20,4 @@
 {'src/srp6.erl', [{outdir, "ebin"}]}.
 {'src/tcp_server.erl', [{outdir, "ebin"}]}.
 {'src/update_fields.erl', [{outdir, "ebin"}]}.
+{'src/movement.erl', [{outdit, "ebin"}]}.

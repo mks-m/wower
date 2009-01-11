@@ -4,7 +4,6 @@
 -include("more_records.hrl").
 
 char_create_info(Race, Class) -> 
-    io:format("race: ~p~nclass: ~p~n", [Race, Class]),
     CI1 = race_create_info(Race, #char_create_info{}),
     CI2 = class_create_info(Class, CI1),
     race_class_create_info(Race, Class, CI2).

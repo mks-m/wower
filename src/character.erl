@@ -142,9 +142,6 @@ in_world(#client_state{receiver=R, sender=S, char=Char}=State) ->
     {R, cmsg_move_time_skipped, _} ->
         in_world(State);
 
-    {R, msg_move_fall_land, _} ->
-        in_world(State);
-
     {R, cmsg_tutorial_flag, _} ->
         in_world(State);
     
@@ -312,8 +309,7 @@ cmsg_char_enum(S, St, _) ->
 cmsg_char_create(S, #client_state{account = Account, realm = Realm} = St, D) ->
     {Name, Rest} = read_cstring(D),
     <<Race?B, Class?B, Gender?B, Skin?B,
-      Face?B, HS?B, HC?B, FH?B,
-      Outfit?B, Rest2/binary>> = Rest,
+      Face?B, HS?B, HC?B, FH?B, _?B, _/binary>> = Rest,
     RaceName    = char_helper:race(Race),
     ClassName   = char_helper:class(Class),
     CreateInfo  = content:char_create_info(RaceName, ClassName),
@@ -358,5 +354,5 @@ cmsg_char_create(S, #client_state{account = Account, realm = Realm} = St, D) ->
                  max_dmg          = CreateInfo#char_create_info.max_dmg, 
                  scale            = CreateInfo#char_create_info.scale},
     ok = mnesia:dirty_write(Char),
-    S ! {self(), smsg_char_create, <<16#2f:8/integer>>},
+    S ! {self(), smsg_char_create, <<16#2f?B>>},
     St.

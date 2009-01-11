@@ -1,9 +1,11 @@
 %% Author: kp
 %% Created: Jan 11, 2009
 %% Description: movement flags and functions
--module(movement_helper).
+-module(movement).
 
--export([info/1]).
+-export([info/1, start_forward/3, start_backward/3,
+         heartbeat/3, start_turn_right/3, start_turn_left/3,
+         stop_turn/3, stop/3]).
 
 -include("realm_records.hrl").
 
@@ -47,6 +49,7 @@
 info(<<Flags?L, Unk1?W, Time?L, X?f, Y?f, Z?f, O?f, Rest/binary>>) ->
     MI = #movement_info{flags = Flags, unk1 = Unk1, time = Time,
                         x = X, y = Y, z = Z, o = O},
+    %% io:format("mi1: ~p~n", [MI]),
     if (Flags band ?on_transport) > 0 ->
         <<T_guid?Q, Tx?f, Ty?f, Tz?f, 
           To?f, T_time?L, T_seat?B, Rest2/binary>> = Rest,
@@ -55,6 +58,7 @@ info(<<Flags?L, Unk1?W, Time?L, X?f, Y?f, Z?f, O?f, Rest/binary>>) ->
     true ->
         MI2 = MI, Rest2 = Rest
     end,
+    %% io:format("mi2: ~p~n", [MI2]),
 
     if ((Flags band (?swimming bor ?flying2)) > 0) or 
        ((Unk1 band 16#20) > 0) ->
@@ -63,9 +67,11 @@ info(<<Flags?L, Unk1?W, Time?L, X?f, Y?f, Z?f, O?f, Rest/binary>>) ->
     true ->
         MI3 = MI2, Rest3 = Rest2
     end,
+    %% io:format("mi3: ~p~n", [MI2]),
 
     <<Fall_time?L, Rest4/binary>> = Rest3,
     MI4 = MI3#movement_info{fall_time = Fall_time},
+    %% io:format("mi4: ~p~n", [MI2]),
 
     if (Flags band ?jumping) > 0 ->
         <<Unk2?f, J_sin?f, J_cos?f, J_speed?f, Rest5/binary>> = Rest4,
@@ -74,6 +80,7 @@ info(<<Flags?L, Unk1?W, Time?L, X?f, Y?f, Z?f, O?f, Rest/binary>>) ->
     true ->
         MI5 = MI4, Rest5 = Rest4
     end,
+    %% io:format("mi5: ~p~n", [MI2]),
 
     if (Flags band ?spline) > 0 ->
         <<Unk3?f, _/binary>> = Rest5,
@@ -81,7 +88,59 @@ info(<<Flags?L, Unk1?W, Time?L, X?f, Y?f, Z?f, O?f, Rest/binary>>) ->
     true ->
         MI6 = MI5
     end,
+    %% io:format("mi6: ~p~n", [MI2]),
 
     {ok, MI6};
 info(_) ->
     {error, not_movement_info}.
+
+start_forward(_S, State, Data) ->
+    io:format("forward:~n"),
+    movement(Data),
+    State.
+
+start_backward(_S, State, Data) ->
+    io:format("backward:~n"),
+    movement(Data),
+    State.
+
+heartbeat(_S, State, Data) ->
+    io:format("heartbeat:~n"),
+    movement(Data),
+    State.
+
+start_turn_left(_S, State, Data) ->
+    io:format("turn left:~n"),
+    movement(Data),
+    State.
+
+start_turn_right(_S, State, Data) ->
+    io:format("turn right:~n"),
+    movement(Data),
+    State.
+
+stop_turn(_S, State, Data) ->
+    io:format("turn stop:~n"),
+    movement(Data),
+    State.
+
+stop(_S, State, Data) ->
+    io:format("stop:~n"),
+    movement(Data),
+    State.
+
+movement(Data) ->
+    {ok, MovementInfo} = info(Data),
+    lists:foldl(
+        fun
+        (E, I) ->
+            V = element(I, MovementInfo),
+            if V /= undefined -> 
+                io:format("  ~8s: ~p~n", [E, element(I, MovementInfo)]);
+            true ->
+                ok
+            end,
+            I + 1
+        end, 
+        2, record_info(fields, movement_info)),
+    ok.

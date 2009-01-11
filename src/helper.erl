@@ -1,16 +1,11 @@
 -module(helper).
--export([main/1, start/0, start/1, stop/0, restart/1, install/0, compile/0, load/0]).
+-export([start/0, start/1, stop/0, restart/1, 
+         install/0, compile/0, load/0]).
 
 -include("logon_records.hrl").
 -include("realm_records.hrl").
 -include("database_records.hrl").
 -include("more_records.hrl").
-
-main(["install"]) ->
-    install(),
-    start();
-main(_) ->
-    start().
 
 start() ->
     logon_server:start(),

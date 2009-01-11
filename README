@@ -28,9 +28,9 @@ works.
 2. Get sources
 3. Run `erl -make`
 4. Go to ebin folder
-5. Run `erl -run helper install`
-6. Run `erl -run helper` without 'install' option if you don't
-   want database re-created and DBC files re-imported.
+5. Run `erl` and type next commands:
+   > helper:install(). // only if you want to recreate DB
+   > helper:start().   // this will start realm and logon servers
 
 You must have correct(>= 3.0.3) DBC files in ebin/dbc folder to
 start server properly.

@@ -1,7 +1,7 @@
 %% Author: kp
 %% Created: Jan 11, 2009
 %% Description: movement flags and functions
--module(movement).
+-module(movement_helper).
 
 -export([info/1]).
 
@@ -45,44 +45,43 @@
 -define(unk3,         16#40000000).
 
 info(<<Flags?L, Unk1?W, Time?L, X?f, Y?f, Z?f, O?f, Rest/binary>>) ->
+    MI = #movement_info{flags = Flags, unk1 = Unk1, time = Time,
+                        x = X, y = Y, z = Z, o = O},
     if (Flags band ?on_transport) > 0 ->
         <<T_guid?Q, Tx?f, Ty?f, Tz?f, 
-          To?f, T_time?L, T_seat?B, Rest2/binary>> = Rest;
+          To?f, T_time?L, T_seat?B, Rest2/binary>> = Rest,
+        MI2 = MI#movement_info{t_guid = T_guid, tx = Tx, ty = Ty, tz = Tz, 
+                               to = To, t_time = T_time, t_seat = T_seat};
     true ->
-        {T_guid, Tx, Ty, Tz, To, T_time, T_seat} = 
-        {unknown, unknown, unknown, unknown, unknown, unknown, unknown},
-        Rest2 = Rest
+        MI2 = MI, Rest2 = Rest
     end,
 
     if ((Flags band (?swimming bor ?flying2)) > 0) or 
        ((Unk1 band 16#20) > 0) ->
-        <<S_pitch?f, Rest3/binary>> = Rest2;
+        <<S_pitch?f, Rest3/binary>> = Rest2,
+        MI3 = MI2#movement_info{s_pitch = S_pitch};
     true ->
-        S_pitch = unknown,
-        Rest3 = Rest2
+        MI3 = MI2, Rest3 = Rest2
     end,
 
     <<Fall_time?L, Rest4/binary>> = Rest3,
+    MI4 = MI3#movement_info{fall_time = Fall_time},
 
     if (Flags band ?jumping) > 0 ->
-        <<Unk2?f, J_sinAngle?f, J_cosAngle?f, 
-          J_xyspeed?f, Rest5/binary>> = Rest4;
+        <<Unk2?f, J_sin?f, J_cos?f, J_speed?f, Rest5/binary>> = Rest4,
+        MI5 = MI4#movement_info{unk2 = Unk2, j_sin = J_sin, 
+                               j_cos = J_cos, j_speed = J_speed};
     true ->
-        {Unk2, J_sinAngle, J_cosAngle, J_xyspeed} = 
-        {unknown, unknown, unknown, unknown},
-        Rest5 = Rest4
+        MI5 = MI4, Rest5 = Rest4
     end,
 
     if (Flags band ?spline) > 0 ->
-        <<Unk3?f, _/binary>> = Rest5;
+        <<Unk3?f, _/binary>> = Rest5,
+        MI6 = MI5#movement_info{unk3 = Unk3};
     true ->
-        Unk3 = unknown
+        MI6 = MI5
     end,
 
-    {ok, {movement_info, Flags, Unk1, Time, X, Y, Z, O, 
-                         T_guid, Tx, Ty, Tz, To, T_time, T_seat, 
-                         S_pitch, Fall_time, Unk2, 
-                         J_sinAngle, J_cosAngle, J_xyspeed, 
-                         Unk3}};
+    {ok, MI6};
 info(_) ->
     {error, not_movement_info}.

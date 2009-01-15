@@ -96,8 +96,15 @@ info(_) ->
 
 start_forward(_S, State, Data) ->
     io:format("forward:~n"),
-    movement(Data),
-    State.
+    MI = movement(Data),
+    Char = (State#client_state.char)#char{position_x = MI#movement_info.x,
+                                          position_x = MI#movement_info.y,
+                                          position_x = MI#movement_info.z,
+                                          position_x = MI#movement_info.o},
+    State#client_state.current_map ! {set, self(), MI#movement_info.x,
+                                                   MI#movement_info.y,
+                                                   MI#movement_info.z},
+    State#client_state{char = Char}.
 
 start_backward(_S, State, Data) ->
     io:format("backward:~n"),
@@ -143,4 +150,4 @@ movement(Data) ->
             I + 1
         end, 
         2, record_info(fields, movement_info)),
-    ok.
+    MovementInfo.

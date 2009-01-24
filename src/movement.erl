@@ -97,7 +97,47 @@ info(_) ->
 
 start_forward(_S, State, Data) ->
     io:format("forward:~n"),
-    MI = movement(Data),
+    movement(State, Data).
+
+start_backward(_S, State, Data) ->
+    io:format("backward:~n"),
+    movement(State, Data).
+
+heartbeat(_S, State, Data) ->
+    io:format("heartbeat:~n"),
+    movement(State, Data),
+    State.
+
+start_turn_left(_S, State, Data) ->
+    io:format("turn left:~n"),
+    movement(State, Data).
+
+start_turn_right(_S, State, Data) ->
+    io:format("turn right:~n"),
+    movement(State, Data).
+
+stop_turn(_S, State, Data) ->
+    io:format("turn stop:~n"),
+    movement(State, Data).
+
+stop(_S, State, Data) ->
+    io:format("stop:~n"),
+    movement(State, Data).
+
+movement(State, Data) ->
+    {ok, MI} = info(Data),
+    lists:foldl(
+        fun
+        (E, I) ->
+            V = element(I, MI),
+            if V /= undefined -> 
+                io:format("  ~8s: ~p~n", [E, element(I, MI)]);
+            true ->
+                ok
+            end,
+            I + 1
+        end, 
+        2, record_info(fields, movement_info)),
     Char = (State#client_state.char)#char{position_x  = MI#movement_info.x,
                                           position_y  = MI#movement_info.y,
                                           position_z  = MI#movement_info.z,
@@ -106,49 +146,3 @@ start_forward(_S, State, Data) ->
                                                    MI#movement_info.y,
                                                    MI#movement_info.z},
     State#client_state{char = Char}.
-
-start_backward(_S, State, Data) ->
-    io:format("backward:~n"),
-    movement(Data),
-    State.
-
-heartbeat(_S, State, Data) ->
-    io:format("heartbeat:~n"),
-    movement(Data),
-    State.
-
-start_turn_left(_S, State, Data) ->
-    io:format("turn left:~n"),
-    movement(Data),
-    State.
-
-start_turn_right(_S, State, Data) ->
-    io:format("turn right:~n"),
-    movement(Data),
-    State.
-
-stop_turn(_S, State, Data) ->
-    io:format("turn stop:~n"),
-    movement(Data),
-    State.
-
-stop(_S, State, Data) ->
-    io:format("stop:~n"),
-    movement(Data),
-    State.
-
-movement(Data) ->
-    {ok, MovementInfo} = info(Data),
-    lists:foldl(
-        fun
-        (E, I) ->
-            V = element(I, MovementInfo),
-            if V /= undefined -> 
-                io:format("  ~8s: ~p~n", [E, element(I, MovementInfo)]);
-            true ->
-                ok
-            end,
-            I + 1
-        end, 
-        2, record_info(fields, movement_info)),
-    MovementInfo.

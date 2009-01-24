@@ -8,6 +8,7 @@
          stop_turn/3, stop/3]).
 
 -include("realm_records.hrl").
+-include("database_records.hrl").
 
 % network defines
 -define(I, /unsigned-little-integer).
@@ -97,10 +98,10 @@ info(_) ->
 start_forward(_S, State, Data) ->
     io:format("forward:~n"),
     MI = movement(Data),
-    Char = (State#client_state.char)#char{position_x = MI#movement_info.x,
-                                          position_x = MI#movement_info.y,
-                                          position_x = MI#movement_info.z,
-                                          position_x = MI#movement_info.o},
+    Char = (State#client_state.char)#char{position_x  = MI#movement_info.x,
+                                          position_y  = MI#movement_info.y,
+                                          position_z  = MI#movement_info.z,
+                                          orientation = MI#movement_info.o},
     State#client_state.current_map ! {set, self(), MI#movement_info.x,
                                                    MI#movement_info.y,
                                                    MI#movement_info.z},

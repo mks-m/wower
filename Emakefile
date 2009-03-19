@@ -1,23 +1,3 @@
-{'src/account_helper.erl', [{outdir, "ebin"}]}.
-{'src/cell.erl', [{outdir, "ebin"}]}.
-{'src/character.erl', [{outdir, "ebin"}]}.
-{'src/char_helper.erl', [{outdir, "ebin"}]}.
-{'src/chat_handler.erl', [{outdir, "ebin"}]}.
-{'src/common_helper.erl', [{outdir, "ebin"}]}.
-{'src/content.erl', [{outdir, "ebin"}]}.
-{'src/dbc.erl', [{outdir, "ebin"}]}.
-{'src/helper.erl', [{outdir, "ebin"}]}.
-{'src/logon_opcodes.erl', [{outdir, "ebin"}]}.
-{'src/logon_packets.erl', [{outdir, "ebin"}]}.
-{'src/logon_patterns.erl', [{outdir, "ebin"}]}.
-{'src/logon_server.erl', [{outdir, "ebin"}]}.
-{'src/packet_helper.erl', [{outdir, "ebin"}]}.
-{'src/realm_crypto.erl', [{outdir, "ebin"}]}.
-{'src/realm_helper.erl', [{outdir, "ebin"}]}.
-{'src/realm_opcodes.erl', [{outdir, "ebin"}]}.
-{'src/realm_patterns.erl', [{outdir, "ebin"}]}.
-{'src/realm_server.erl', [{outdir, "ebin"}]}.
-{'src/srp6.erl', [{outdir, "ebin"}]}.
-{'src/tcp_server.erl', [{outdir, "ebin"}]}.
-{'src/update_fields.erl', [{outdir, "ebin"}]}.
-{'src/movement.erl', [{outdit, "ebin"}]}.
+{'common/src/*', [{i, "common/include"}, {outdir, "ebin"}]}.
+{'logon/src/*', [{i, "common/include"}, {i, "logon/include"}, {outdir, "ebin"}]}.
+{'realm/src/*', [{i, "common/include"}, {i, "realm/include"}, {outdir, "ebin"}]}.

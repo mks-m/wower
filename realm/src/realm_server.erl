@@ -14,7 +14,7 @@ start() ->
     
     %% make sure module is loaded
     movement:module_info(),
-    
+    load(),
     io:format("realm server started ~n", []),
     ok.
 
@@ -79,7 +79,9 @@ load() ->
     c:l(account_helper),
     c:l(char_helper),
     c:l(character),
+	c:l(chat_handler),
     c:l(common_helper),
+	c:l(handlers_misc),
     c:l(packet_helper),
     c:l(realm_crypto),
     c:l(realm_helper),

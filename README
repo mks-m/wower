@@ -4,7 +4,7 @@ wower is Erlang implementation of World of Warcraft server emulator.
 
 == Current status ==
 
-Working with WoTLK 3.0.3.
+Working with WoTLK 3.0.8.
 
 === Logon server ===
 
@@ -32,7 +32,7 @@ works.
    > helper:install(). // only if you want to recreate DB
    > helper:start().   // this will start realm and logon servers
 
-You must have correct(>= 3.0.3) DBC files in ebin/dbc folder to
+You must have correct(>= 3.0.8) DBC files in ebin/dbc folder to
 start server properly.
 
 === Working on ===

@@ -60,7 +60,9 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         ok = send_status(S),
         ok = send_self(S, Char),
         put(tick_count, 0),
-        io:format("entering world loop~n"),
+        MapPid ! {add, self(), Char#char.position_x,
+                               Char#char.position_y,
+                               Char#char.position_z},
         in_world(State#client_state{current_map=MapPid, char=Char});
 
     {R, {M, F}, Data} ->

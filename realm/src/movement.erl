@@ -8,6 +8,7 @@
          stop_turn/3, stop/3]).
 
 -include("realm_records.hrl").
+-include("database_records.hrl").
 
 % network defines
 -define(I, /unsigned-little-integer).
@@ -96,51 +97,52 @@ info(_) ->
 
 start_forward(_S, State, Data) ->
     io:format("forward:~n"),
-    movement(Data),
-    State.
+    movement(State, Data).
 
 start_backward(_S, State, Data) ->
     io:format("backward:~n"),
-    movement(Data),
-    State.
+    movement(State, Data).
 
 heartbeat(_S, State, Data) ->
     io:format("heartbeat:~n"),
-    movement(Data),
+    movement(State, Data),
     State.
 
 start_turn_left(_S, State, Data) ->
     io:format("turn left:~n"),
-    movement(Data),
-    State.
+    movement(State, Data).
 
 start_turn_right(_S, State, Data) ->
     io:format("turn right:~n"),
-    movement(Data),
-    State.
+    movement(State, Data).
 
 stop_turn(_S, State, Data) ->
     io:format("turn stop:~n"),
-    movement(Data),
-    State.
+    movement(State, Data).
 
 stop(_S, State, Data) ->
     io:format("stop:~n"),
-    movement(Data),
-    State.
+    movement(State, Data).
 
-movement(Data) ->
-    {ok, MovementInfo} = info(Data),
+movement(State, Data) ->
+    {ok, MI} = info(Data),
     lists:foldl(
         fun
         (E, I) ->
-            V = element(I, MovementInfo),
+            V = element(I, MI),
             if V /= undefined -> 
-                io:format("  ~8s: ~p~n", [E, element(I, MovementInfo)]);
+                io:format("  ~8s: ~p~n", [E, element(I, MI)]);
             true ->
                 ok
             end,
             I + 1
         end, 
         2, record_info(fields, movement_info)),
-    ok.
+    Char = (State#client_state.char)#char{position_x  = MI#movement_info.x,
+                                          position_y  = MI#movement_info.y,
+                                          position_z  = MI#movement_info.z,
+                                          orientation = MI#movement_info.o},
+    State#client_state.current_map ! {set, self(), MI#movement_info.x,
+                                                   MI#movement_info.y,
+                                                   MI#movement_info.z},
+    State#client_state{char = Char}.

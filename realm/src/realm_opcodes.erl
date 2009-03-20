@@ -247,7 +247,7 @@ h(147) -> smsg_guild_command_result;
 h(148) -> umsg_update_guild;
 h(149) -> cmsg_messagechat;
 h(150) -> smsg_messagechat;
-h(151) -> {chat_helper, cmsg_join_channel};
+h(151) -> {chat_handler, cmsg_join_channel};
 h(152) -> cmsg_leave_channel;
 h(153) -> smsg_channel_notify;
 h(154) -> cmsg_channel_list;

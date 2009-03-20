@@ -114,6 +114,7 @@ cmsg_logout_request(S, C)->
 		receive
 			{C, exit} -> ok
 		after 20000 ->
+			C ! logout,
 			S ! {C, smsg_logout_complete, <<>>}
 		end
 		end

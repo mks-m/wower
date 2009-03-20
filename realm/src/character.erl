@@ -160,7 +160,9 @@ in_world(#client_state{receiver=R, sender=S, char=Char}=State) ->
     {R, Handler, Data} ->
         io:format("unhandled: ~p(~p)~n", [Handler, Data]),
         in_world(State);
-    
+    logout ->
+		NewState = State#client_state{logout=no, current_map = -1, char=no},
+		not_in_world(NewState);
     Any ->
         io:format("unauthorized: ~p~n", [Any]),
         in_world(State)

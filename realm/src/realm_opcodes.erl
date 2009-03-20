@@ -572,7 +572,7 @@ h(472) -> cmsg_set_skill_cheat;
 h(473) -> smsg_start_mirror_timer;
 h(474) -> smsg_pause_mirror_timer;
 h(475) -> smsg_stop_mirror_timer;
-h(476) -> {character, cmsg_ping};
+h(476) -> {handlers_misc, cmsg_ping};
 h(477) -> smsg_pong;
 h(478) -> smsg_clear_cooldown;
 h(479) -> smsg_gameobject_pagetext;

@@ -1,6 +1,8 @@
 -module(logon_server).
 -export([start/0, start/1, load/0, compile/0, stop/0, restart/1, loop/1]).
 
+-export([receiver/2, sender/2]).
+
 -include("logon_records.hrl").
 -include("database_records.hrl").
 
@@ -22,26 +24,41 @@ restart(Method) ->
     start().
 
 loop(Socket) ->
-    loop(Socket, #logon_state{}).
+    R = spawn_link(?MODULE, receiver, [Socket, self()]),
+    S = spawn_link(?MODULE, sender, [Socket, self()]),
+    client(#logon_state{receiver = R, sender = S}).
 
-loop(Socket, State) ->
-    try gen_tcp:recv(Socket, 0) of
-    {ok, Data} ->
+client(#logon_state{receiver = R, sender = S} = State) ->
+    receive
+    {R, Data} ->
         case logon_packets:dispatch(Data, State) of
         {send, Response, NewState} ->
-            gen_tcp:send(Socket, Response),
-            loop(Socket, NewState);
+            S ! {self(), Response},
+            client(NewState);
         {skip, _, NewState} ->
-            loop(Socket, NewState);
-        Anything ->
-            io:format("unexpected response: ~p~n", Anything),
-            loop(Socket, State)
+            client(NewState);
+        Any ->
+            io:format("unexpected response: ~p~n", Any),
+            client(State)
         end;
-    {error, closed} ->
-        ok
-    catch
-    _ -> 
-        ok
+    Any ->
+        io:format("Weird message to client: ~p~n", [Any]),
+        client(State)
+    end.
+
+receiver(Socket, Client) ->
+    {ok, Data} = gen_tcp:recv(Socket, 0),
+    Client ! {self(), Data},
+    receiver(Socket, Client).
+
+sender(Socket, Client) ->
+    receive
+        {Client, Data} ->
+            gen_tcp:send(Socket, Data),
+            sender(Socket, Client);
+        Any ->
+            io:format("Weird message to sender: ~p~n", [Any]),
+            sender(Socket, Client)
     end.
 
 start(Method) ->

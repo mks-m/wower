@@ -30,8 +30,9 @@ loop(Socket) ->
 
 client(#logon_state{receiver = R, sender = S} = State) ->
     receive
-    {R, Data} ->
-        case logon_packets:dispatch(Data, State) of
+    {R, Opcode, Data} ->
+        Handler = logon_opcodes:get(Opcode),
+        case logon_packets:Handler(Opcode, Data, State) of
         {send, Response, NewState} ->
             S ! {self(), Response},
             client(NewState);
@@ -48,7 +49,8 @@ client(#logon_state{receiver = R, sender = S} = State) ->
 
 receiver(Socket, Client) ->
     {ok, Data} = gen_tcp:recv(Socket, 0),
-    Client ! {self(), Data},
+    <<Opcode:8/integer, Rest/binary>> = Data,
+    Client ! {self(), Opcode, Rest},
     receiver(Socket, Client).
 
 sender(Socket, Client) ->

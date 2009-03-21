@@ -5,12 +5,6 @@
 -include("database_records.hrl").
 -include_lib("stdlib/include/qlc.hrl").
 
-dispatch(Data, State) ->
-    <<Opcode:8/integer, Rest/binary>> = Data,
-    Handler = logon_opcodes:get(Opcode),
-    io:format("handling ~p~n", [Handler]),
-    ?MODULE:Handler(Opcode, Rest, State).
-
 %%
 %% authenticate can receive only auth_request packet
 %% and will try to find account and generate 

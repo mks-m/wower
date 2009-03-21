@@ -19,7 +19,7 @@ dispatch(Data, State) ->
 %%
 authenticate(Opcode, Data, State) ->
     case logon_patterns:auth_request(Data) of
-    {ok, Account} ->
+    {ok, Build, Account} when Build > 9182 ->
         case account_helper:find_by_name(Account) of
         [AccountRecord] -> 
             H = srp6:challenge(AccountRecord),
@@ -28,6 +28,8 @@ authenticate(Opcode, Data, State) ->
         _ ->
             {send, logon_patterns:error(Opcode, account_missing), State}
         end;
+    {ok, _Build, _Account} ->
+        {send, logon_patterns:error(Opcode, wrong_build), State};
     _ ->
         wrong_packet(authenticate, Data),
         {send, logon_patterns:error(Opcode, account_missing), State}

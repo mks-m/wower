@@ -4,7 +4,9 @@
          smsg_auth_response/0,
          smsg_char_enum/2,
          cmsg_ping/1,
-         cmsg_player_login/1]).
+         cmsg_player_login/1,
+		 cmsg_logout_request/2
+		 ]).
 
 -include("database_records.hrl").
 
@@ -106,3 +108,14 @@ smsg_char_enum_equip(CharId) ->
 smsg_char_enum_equip([], Ready) -> Ready;
 smsg_char_enum_equip([_|Items], Ready) ->
     smsg_char_enum_equip(Items, <<Ready/binary, 0?L?IN, 0?B, 0?L?IN>>).
+	
+cmsg_logout_request(S, C)->
+	spawn(fun() ->
+		receive
+			{C, exit} -> ok
+		after 20000 ->
+			C ! logout,
+			S ! {C, smsg_logout_complete, <<>>}
+		end
+		end
+		).

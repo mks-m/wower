@@ -22,9 +22,10 @@ cmsg_logout_request(S, State, _Data) ->
 		end),
 	State#client_state{logout=LogPid}.
 
-cmsg_logout_cancel(_S, State, _Data) when pid(State#client_state.logout) ->
+cmsg_logout_cancel(S, State, _Data) when pid(State#client_state.logout) ->
 	Logout = State#client_state.logout,
 	Logout ! {self(), exit},
+	S ! {self(), smsg_logout_cancel_ack, <<>>},
 	State#client_state{logout = no};
 	
 cmsg_logout_cancel(_S, State, _Data) ->

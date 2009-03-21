@@ -47,10 +47,10 @@ error(Opcode, Error) ->
 %% byte    L account name length
 %% char L  N account name
 auth_request(<<_Err?B, _Size?W?IN, _Game:4?b, _Major?B, 
-               _Middle?B, _Minor?B, _Build?W?IN, _Platform:4?b, 
+               _Middle?B, _Minor?B, Build?W?IN, _Platform:4?b, 
                _Os:4?b, _Country:4?b, _TimeZone?L?IN, _IP:4?b, 
                _Length?B, Account:_Length?b>>) ->
-    {ok, binary_to_list(Account)};
+    {ok, Build, binary_to_list(Account)};
 auth_request(_) ->
     no.
 

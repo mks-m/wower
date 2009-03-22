@@ -1,5 +1,5 @@
 -module(realm_server).
--export([start/0, start/1, load/0, compile/0, stop/0, restart/1, loop/1]).
+-export([start/0, stop/0, restart/0, loop/1]).
 -export([sender/3, receiver/3]).
 
 -include("realm_records.hrl").
@@ -21,9 +21,8 @@ start() ->
 stop() ->
     gen_server:call(?MODULE, stop).
 
-restart(Method) ->
+restart() ->
     stop(),
-    ?MODULE:Method(),
     start().
 
 loop(Socket) ->
@@ -71,10 +70,6 @@ dispatch(S, C, Size, H) ->
     {ok, D} = gen_tcp:recv(S, Size),
     C ! {self(), H, D}.
 
-start(Method) ->
-    ?MODULE:Method(),
-    start().
-
 load() ->
     c:l(account_helper),
     c:l(char_helper),
@@ -90,20 +85,6 @@ load() ->
     c:l(srp6),
     c:l(tcp_server),
     c:l(update_fields).
-
-compile() ->
-    c:c(account_helper),
-    c:c(char_helper),
-    c:c(character),
-    c:c(common_helper),
-    c:c(packet_helper),
-    c:c(realm_crypto),
-    c:c(realm_helper),
-    c:c(realm_opcodes),
-    c:c(realm_patterns),
-    c:c(srp6),
-    c:c(tcp_server),
-    c:c(update_fields).
 
 auth_session(Rest) ->
     {_, A, _}      = realm_patterns:cmsg_auth_session(Rest),

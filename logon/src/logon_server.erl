@@ -53,7 +53,7 @@ receiver(Socket, Client) ->
         <<Opcode:8/integer, Rest/binary>> = Data,
         Client ! {self(), Opcode, Rest},
         receiver(Socket, Client);
-    {error, closed} -> ok
+    {error, closed} -> exit(socket_closed)
     end.
 
 sender(Socket, Client) ->

@@ -57,13 +57,16 @@ sender(S, C, K) ->
     end.
 
 receiver(S, C, K) ->
-    {ok, H} = gen_tcp:recv(S, 6),
-    {DH, NK} = realm_crypto:decrypt(H, K),
-    <<Size:16/integer-big, Opcode:32/integer-little>> = DH,
-    Handler = realm_opcodes:h(Opcode),
-    io:format("handling: ~p (~p), size: ~p~n", [Handler, Opcode, Size]),
-    dispatch(S, C, Size-4, Handler),
-    receiver(S, C, NK).
+    case gen_tcp:recv(S, 6) of
+    {ok, H} ->
+        {DH, NK} = realm_crypto:decrypt(H, K),
+        <<Size:16/integer-big, Opcode:32/integer-little>> = DH,
+        Handler = realm_opcodes:h(Opcode),
+        io:format("handling: ~p (~p), size: ~p~n", [Handler, Opcode, Size]),
+        dispatch(S, C, Size-4, Handler),
+        receiver(S, C, NK);
+    {error, closed} -> exit(socket_closed)
+    end.
 
 dispatch(_, C, 0, H) ->
     C ! {self(), H, <<>>};

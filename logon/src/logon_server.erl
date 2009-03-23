@@ -48,10 +48,13 @@ client(#logon_state{receiver = R, sender = S} = State) ->
     end.
 
 receiver(Socket, Client) ->
-    {ok, Data} = gen_tcp:recv(Socket, 0),
-    <<Opcode:8/integer, Rest/binary>> = Data,
-    Client ! {self(), Opcode, Rest},
-    receiver(Socket, Client).
+    case gen_tcp:recv(Socket, 0) of
+    {ok, Data} ->
+        <<Opcode:8/integer, Rest/binary>> = Data,
+        Client ! {self(), Opcode, Rest},
+        receiver(Socket, Client);
+    {error, closed} -> ok
+    end.
 
 sender(Socket, Client) ->
     receive

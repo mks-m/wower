@@ -5,7 +5,7 @@
 
 -export([info/1, start_forward/3, start_backward/3,
          heartbeat/3, start_turn_right/3, start_turn_left/3,
-         stop_turn/3, stop/3]).
+         stop_turn/3, stop/3, fall_land/3]).
 
 -include("realm_records.hrl").
 -include("database_records.hrl").
@@ -146,3 +146,6 @@ movement(State, Data) ->
                                                    MI#movement_info.y,
                                                    MI#movement_info.z},
     State#client_state{char = Char}.
+
+fall_land(_S, State, _Data) ->
+    State.

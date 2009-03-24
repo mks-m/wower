@@ -298,27 +298,48 @@ bc_inrange(From, #vector{x=OX, y=OY, z=OZ}, R, Objects) ->
                     end 
                 end, Objects).
 
-bc_down(Info, Object, Range, Message) ->
-    M = {bcm, self(), Object, Range, Message},
-    { P1, P2, P3, P4,
-      P5, P6, P7, P8 } = Info#info.n,
-    P1 ! M, P2 ! M, P3 ! M, P4 ! M,
-    P5 ! M, P6 ! M, P7 ! M, P8 ! M,
+bc_down(Info, Object, R, Message) ->
+    M = {bcm, self(), Object, R, Message},
+    { P1, P2, P3, P4, P5, P6, P7, P8 } = Info#info.n,
+    { R1, R2, R3, R4, R5, R6, R7, R8} = bc_down_cells(Info#info.l, Info#info.s, Object),
+    if R1 =< R -> P1 ! M; true -> ok end,
+    if R2 =< R -> P2 ! M; true -> ok end,
+    if R3 =< R -> P3 ! M; true -> ok end,
+    if R4 =< R -> P4 ! M; true -> ok end,
+    if R5 =< R -> P5 ! M; true -> ok end,
+    if R6 =< R -> P6 ! M; true -> ok end,
+    if R7 =< R -> P7 ! M; true -> ok end,
+    if R8 =< R -> P8 ! M; true -> ok end,
     ok.
 
-bc_down(Info, Except, Object, Range, Message) ->
-    M = {bcm, self(), Object, Range, Message},
-    { P1, P2, P3, P4,
-      P5, P6, P7, P8 } = Info#info.n,
-    if P1 =/= Except -> P1 ! M; true -> ok end,
-    if P2 =/= Except -> P2 ! M; true -> ok end,
-    if P3 =/= Except -> P3 ! M; true -> ok end,
-    if P4 =/= Except -> P4 ! M; true -> ok end,
-    if P5 =/= Except -> P5 ! M; true -> ok end,
-    if P6 =/= Except -> P6 ! M; true -> ok end,
-    if P7 =/= Except -> P7 ! M; true -> ok end,
-    if P8 =/= Except -> P8 ! M; true -> ok end,
+bc_down(Info, Except, Object, R, Message) ->
+    M = {bcm, self(), Object, R, Message},
+    { P1, P2, P3, P4, P5, P6, P7, P8 } = Info#info.n,
+    { R1, R2, R3, R4, R5, R6, R7, R8} = bc_down_cells(Info#info.l, Info#info.s, Object),
+    if P1 =/= Except andalso R1 =< R -> P1 ! M; true -> ok end,
+    if P1 =/= Except andalso R2 =< R -> P2 ! M; true -> ok end,
+    if P1 =/= Except andalso R3 =< R -> P3 ! M; true -> ok end,
+    if P1 =/= Except andalso R4 =< R -> P4 ! M; true -> ok end,
+    if P1 =/= Except andalso R5 =< R -> P5 ! M; true -> ok end,
+    if P1 =/= Except andalso R6 =< R -> P6 ! M; true -> ok end,
+    if P1 =/= Except andalso R7 =< R -> P7 ! M; true -> ok end,
+    if P1 =/= Except andalso R8 =< R -> P8 ! M; true -> ok end,
     ok.
+
+bc_down_cells(#vector{x=LX, y=LY, z=LZ}, #vector{x=SX, y=SY, z=SZ}, Object) ->
+    {d(#vector{x=LX-SX/4, y=LY-SY/4, z=LZ-SZ/4}, Object),
+     d(#vector{x=LX-SX/4, y=LY-SY/4, z=LZ+SZ/4}, Object),
+     d(#vector{x=LX-SX/4, y=LY+SY/4, z=LZ-SZ/4}, Object),
+     d(#vector{x=LX-SX/4, y=LY+SY/4, z=LZ+SZ/4}, Object),
+     d(#vector{x=LX+SX/4, y=LY-SY/4, z=LZ-SZ/4}, Object),
+     d(#vector{x=LX+SX/4, y=LY-SY/4, z=LZ+SZ/4}, Object),
+     d(#vector{x=LX+SX/4, y=LY+SY/4, z=LZ-SZ/4}, Object),
+     d(#vector{x=LX+SX/4, y=LY+SY/4, z=LZ+SZ/4}, Object)}.
+
+d(#vector{x=X1, y=Y1, z=Z1},
+  #vector{x=X2, y=Y2, z=Z2}) ->
+    DX = X1-X2, DY = Y1-Y2, DZ = Z1-Z2,
+    math:sqrt(DX*DX + DY*DY + DZ*DZ).
 
 rpc(C, M) ->
     S = self(),

@@ -276,12 +276,12 @@ index(#vector{x=X1, y=Y1, z=Z1},
 index(X, Y, Z) ->
     X * 4 + Y * 2 + Z + 1.
 
-bc_up(Info, #vector{x=OX, y=OY, z=OZ} = O, #vector{x=RX, y=RY, z=RZ} = R, Message) ->
+bc_up(Info, #vector{x=OX, y=OY, z=OZ} = O, R, Message) ->
     #info{l=#vector{x=LX, y=LY, z=LZ},
           s=#vector{x=SX, y=SY, z=SZ}} = Info,
-    if LX-SX <  OX-RX orelse LY-SY <  OY-RY orelse LZ-SZ <  OZ-RZ orelse
-       LX+SX >= OX+RX orelse LY+SY >= OY+RY orelse LZ+SZ >= OZ+RZ ->
-        Info#info.p ! {bc, self(), O, R, Message},
+    if LX-SX <  OX-R orelse LY-SY <  OY-R orelse LZ-SZ <  OZ-R orelse
+       LX+SX >= OX+R orelse LY+SY >= OY+R orelse LZ+SZ >= OZ+R ->
+        Info#info.p ! {bcc, self(), O, R, Message},
         ok;
     true ->
         ok

@@ -104,8 +104,7 @@ cell(#info{p=Parent} = Info, Objects) ->
         InRange = bc_inrange(From, ObjectLocation, Range, Objects),
         dict:fold(fun(K, _, ok) -> K ! Message, ok end, ok, InRange),
         cell(Info, Objects);
-    {bcm, Parent, ObjectLocation, Range, Message} when is_pid(Parent) ->
-        bc_up(Info, ObjectLocation, Range, Message),
+    {bcm, Parent, ObjectLocation, Range, Message} ->
         InRange = bc_inrange(all, ObjectLocation, Range, Objects),
         dict:fold(fun(K, _, ok) -> K ! Message, ok end, ok, InRange),
         cell(Info, Objects);
@@ -161,7 +160,7 @@ meta(#info{p=Parent} = Info) ->
         erlang:element(Index, Info#info.n) ! {set, ObjectPid, X, Y, Z},
         meta(Info);
 
-    {bcm, Parent, ObjectLocation, Range, Message} when is_pid(Parent) ->
+    {bcm, Parent, ObjectLocation, Range, Message} ->
         bc_down(Info, ObjectLocation, Range, Message),
         meta(Info);
     {bcc, From, ObjectLocation, Range, Message} ->
@@ -300,9 +299,25 @@ bc_inrange(From, #vector{x=OX, y=OY, z=OZ}, R, Objects) ->
                 end, Objects).
 
 bc_down(Info, Object, Range, Message) ->
+    M = {bcm, self(), Object, Range, Message},
+    { P1, P2, P3, P4,
+      P5, P6, P7, P8 } = Info#info.n,
+    P1 ! M, P2 ! M, P3 ! M, P4 ! M,
+    P5 ! M, P6 ! M, P7 ! M, P8 ! M,
     ok.
 
 bc_down(Info, Except, Object, Range, Message) ->
+    M = {bcm, self(), Object, Range, Message},
+    { P1, P2, P3, P4,
+      P5, P6, P7, P8 } = Info#info.n,
+    if P1 =/= Except -> P1 ! M; true -> ok end,
+    if P2 =/= Except -> P2 ! M; true -> ok end,
+    if P3 =/= Except -> P3 ! M; true -> ok end,
+    if P4 =/= Except -> P4 ! M; true -> ok end,
+    if P5 =/= Except -> P5 ! M; true -> ok end,
+    if P6 =/= Except -> P6 ! M; true -> ok end,
+    if P7 =/= Except -> P7 ! M; true -> ok end,
+    if P8 =/= Except -> P8 ! M; true -> ok end,
     ok.
 
 rpc(C, M) ->

@@ -10,7 +10,7 @@ cmsg_ping(S, State, Data) ->
     State#client_state{latency=Latency}.
 	
 cmsg_logout_request(S, State, _Data) ->
-	S ! {self(), smsg_logout_response, <<0?L?IN, 0?B?IN>>},
+	S ! {self(), smsg_logout_response, <<0?L, 0?B>>},
 	C = self(),
 	LogPid = spawn(fun() ->
 		receive

@@ -287,13 +287,15 @@ bc_up(Info, #vector{x=OX, y=OY, z=OZ} = O, R, Message) ->
         ok
     end.
 
-bc_inrange(From, #vector{x=OX, y=OY, z=OZ}, #vector{x=RX, y=RY, z=RZ}, Objects) ->
+bc_inrange(From, #vector{x=OX, y=OY, z=OZ}, R, Objects) ->
     dict:filter(fun(K, #vector{x=KX, y=KY, z=KZ}) ->
                     if From =/= K andalso
-                       KX < OX+RX andalso KX > OX-RX andalso
-                       KY < OY+RY andalso KY > OY-RY andalso
-                       KZ < OZ+RZ andalso KZ > OZ-RZ -> true;
-                    true -> false
+                       KX < OX+R andalso KX > OX-R andalso
+                       KY < OY+R andalso KY > OY-R andalso
+                       KZ < OZ+R andalso KZ > OZ-R ->
+                        true;
+                    true ->
+                        false
                     end 
                 end, Objects).
 

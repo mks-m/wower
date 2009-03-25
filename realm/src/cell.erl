@@ -1,7 +1,8 @@
 % TODO: this will be oct-tree based process 
 %       pool for handling objects in region
 -module(cell).
--export([start/0, stop/0, world/0, create/0, test/2, tester/2, init/1, init/2]).
+-export([start/0, stop/0, world/0, create/0, init/1, init/2]).
+-export([test/2, ptest/1, tester/2]).
 
 % general info about cell
 % p - parent cell
@@ -13,7 +14,7 @@
 % size, location and object records
 -record(vector, {x, y, z}).
 
--define(MAX_PER_CELL, 5).
+-define(MAX_PER_CELL, 1000).
 -define(MIN_CELL_SIZE, 500).
 
 start() ->
@@ -48,7 +49,7 @@ stop() ->
 
 % used to create root node
 create() ->
-    Info = #info{s=65000, l=#vector{x=0.0, y=0.0, z=0.0}},
+    Info = #info{s=65000.0, l=#vector{x=0.0, y=0.0, z=0.0}},
     spawn_link(?MODULE, init, [Info]).
 
 % used internally to create child nodes while splitting cell 
@@ -106,19 +107,24 @@ cell(#info{p=Parent} = Info, Objects) ->
         dict:fold(fun(K, _, ok) -> K ! Message, ok end, ok, InRange),
         cell(Info, Objects);
     
-    {status, undefined} ->
-        io:format("cell, size: ~p, holding: ~p~n", [Info#info.s, dict:size(Objects)]),
+    status ->
+        io:format("- cell @ (~.2f, ~.2f, ~.2f), size: ~p, holding: ~p~n", [(Info#info.l)#vector.x, 
+                                                                           (Info#info.l)#vector.y, 
+                                                                           (Info#info.l)#vector.z,
+                                                                           Info#info.s, dict:size(Objects)]),
         cell(Info, Objects);
-    {status, Pid} ->
-        io:format("cell, size: ~p, holding: ~p~n", [Info#info.s, dict:size(Objects)]),
+
+    {status, Pid, Offset} ->
+        io:format(Offset ++ "- cell @ (~.2f, ~.2f, ~.2f), size: ~p, holding: ~p~n", [(Info#info.l)#vector.x, 
+                                                                                     (Info#info.l)#vector.y, 
+                                                                                     (Info#info.l)#vector.z,
+                                                                                     Info#info.s, dict:size(Objects)]),
         Pid ! {status, self(), ok},
         cell(Info, Objects);
     
-    {die, undefined} ->
-        io:format("dead~n"),
+    die ->
         ok;
     {die, Pid} ->
-        io:format("dead~n"),
         Pid ! {status, self(), ok},
         ok;
     
@@ -149,7 +155,6 @@ meta(#info{p=Parent} = Info) ->
     receive
     {add, ObjectPid, X, Y, Z} ->
         Index = index(#vector{x=X, y=Y, z=Z}, Info#info.l),
-        io:format("put into ~p~n", [Index]),
         erlang:element(Index, Info#info.n) ! {add, ObjectPid, X, Y, Z},
         meta(Info);
     {set, ObjectPid, X, Y, Z} ->
@@ -165,18 +170,31 @@ meta(#info{p=Parent} = Info) ->
         bc_down(Info, From, ObjectLocation, Range, Message),
         meta(Info);
     
-    {status, Pid} ->
-        io:format("meta, size: ~p, children:~n", [Info#info.s]),
+    status ->
+        io:format("meta, size: ~p~n", [Info#info.s]),
         N = Info#info.n,
-        rpc(element(1, N), status),
-        rpc(element(2, N), status),
-        rpc(element(3, N), status),
-        rpc(element(4, N), status),
-        rpc(element(5, N), status),
-        rpc(element(6, N), status),
-        rpc(element(7, N), status),
-        rpc(element(8, N), status),
-        io:format("meta end~n~n"),
+        rpc(element(1, N), {status, self(), "    "}),
+        rpc(element(2, N), {status, self(), "    "}),
+        rpc(element(3, N), {status, self(), "    "}),
+        rpc(element(4, N), {status, self(), "    "}),
+        rpc(element(5, N), {status, self(), "    "}),
+        rpc(element(6, N), {status, self(), "    "}),
+        rpc(element(7, N), {status, self(), "    "}),
+        rpc(element(8, N), {status, self(), "    "}),
+        meta(Info);
+        
+
+    {status, Pid, Offset} ->
+        io:format(Offset ++ "- meta, size: ~p~n", [Info#info.s]),
+        N = Info#info.n,
+        rpc(element(1, N), {status, self(), Offset ++ "    "}),
+        rpc(element(2, N), {status, self(), Offset ++ "    "}),
+        rpc(element(3, N), {status, self(), Offset ++ "    "}),
+        rpc(element(4, N), {status, self(), Offset ++ "    "}),
+        rpc(element(5, N), {status, self(), Offset ++ "    "}),
+        rpc(element(6, N), {status, self(), Offset ++ "    "}),
+        rpc(element(7, N), {status, self(), Offset ++ "    "}),
+        rpc(element(8, N), {status, self(), Offset ++ "    "}),
         Pid ! {status, self(), ok},
         meta(Info);
 
@@ -198,7 +216,7 @@ meta(#info{p=Parent} = Info) ->
         meta(Info)
     end.
 
-split(#info{s=S} = Info, Objects) when S/4 >= ?MIN_CELL_SIZE ->
+split(#info{s=S} = Info, Objects) when S/2 >= ?MIN_CELL_SIZE ->
     io:format("going to split~n"),
     Navigation = {create(1, Info, Objects),
                   create(2, Info, Objects),
@@ -334,10 +352,9 @@ d(#vector{x=X1, y=Y1, z=Z1},
     math:sqrt(DX*DX + DY*DY + DZ*DZ).
 
 rpc(C, M) ->
-    S = self(),
-    C ! {M, S},
+    C ! M,
     receive 
-        {M, C, V} -> V
+        V -> V
     end.
 
 test(N) ->
@@ -348,9 +365,9 @@ test(N) ->
 test(0, C) ->
     C;
 test(N, C) ->
-    V = #vector{x = random:uniform(65000),
-                y = random:uniform(65000),
-                z = random:uniform(65000)},
+    V = #vector{x = random:uniform(65000.0) - 32500.0,
+                y = random:uniform(65000.0) - 32500.0,
+                z = random:uniform(65000.0) - 32500.0},
     C ! {add, spawn(?MODULE, tester, [C, V]),
               V#vector.x, V#vector.y, V#vector.z},
     test(N-1, C).
@@ -380,3 +397,8 @@ tester(Cell, #vector{x=X, y=Y, z=Z}, Count) ->
 
 wait(N) ->
     receive after N -> ok end.
+
+ptest(N) ->
+    C = create(),
+    test(N, C),
+    {C, length(erlang:processes())}.

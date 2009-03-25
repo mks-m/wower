@@ -1,7 +1,7 @@
 % TODO: this will be oct-tree based process 
 %       pool for handling objects in region
 -module(cell).
--export([start/0, stop/0, world/0, create/0, test/1, init/1, init/2]).
+-export([start/0, stop/0, world/0, create/0, test/2, tester/2, init/1, init/2]).
 
 % general info about cell
 % p - parent cell
@@ -48,16 +48,13 @@ stop() ->
 
 % used to create root node
 create() ->
-    Info = #info{s=#vector{x=65000, y=65000, z=65000}, 
-                 l=#vector{x=0.0, y=0.0, z=0.0}},
+    Info = #info{s=65000, l=#vector{x=0.0, y=0.0, z=0.0}},
     spawn_link(?MODULE, init, [Info]).
 
 % used internally to create child nodes while splitting cell 
-create(Bitmap, #info{s=#vector{x=SX, y=SY, z=SZ}, 
-                     l=#vector{x=LX, y=LY, z=LZ}}, O) ->
-    NS = #vector{x=SX/2, y=SY/2, z=SZ/2},
-    {NL, NO} = filter(Bitmap, O, SX, SY, SZ, LX, LY, LZ),
-    spawn_link(?MODULE, init, [#info{p=self(), s=NS, l=NL}, NO]).
+create(Bitmap, #info{s=S, l=#vector{x=LX, y=LY, z=LZ}}, O) ->
+    {NL, NO} = filter(Bitmap, O, S, LX, LY, LZ),
+    spawn_link(?MODULE, init, [#info{p=self(), s=S/2, l=NL}, NO]).
 
 % initializes root node
 init(#info{} = Info) ->
@@ -110,10 +107,10 @@ cell(#info{p=Parent} = Info, Objects) ->
         cell(Info, Objects);
     
     {status, undefined} ->
-        io:format("cell, holding ~p~n", [dict:size(Objects)]),
+        io:format("cell, size: ~p, holding: ~p~n", [Info#info.s, dict:size(Objects)]),
         cell(Info, Objects);
     {status, Pid} ->
-        io:format("cell, holding ~p~n", [dict:size(Objects)]),
+        io:format("cell, size: ~p, holding: ~p~n", [Info#info.s, dict:size(Objects)]),
         Pid ! {status, self(), ok},
         cell(Info, Objects);
     
@@ -151,12 +148,12 @@ cell(#info{p=Parent} = Info, Objects) ->
 meta(#info{p=Parent} = Info) ->
     receive
     {add, ObjectPid, X, Y, Z} ->
-        Index = index(#vector{x=X, y=Y, z=Z}, (Info#info.l)#vector.x),
+        Index = index(#vector{x=X, y=Y, z=Z}, Info#info.l),
         io:format("put into ~p~n", [Index]),
         erlang:element(Index, Info#info.n) ! {add, ObjectPid, X, Y, Z},
         meta(Info);
     {set, ObjectPid, X, Y, Z} ->
-        Index = index(#vector{x=X, y=Y, z=Z}, (Info#info.l)#vector.x),
+        Index = index(#vector{x=X, y=Y, z=Z}, Info#info.l),
         erlang:element(Index, Info#info.n) ! {set, ObjectPid, X, Y, Z},
         meta(Info);
 
@@ -169,7 +166,7 @@ meta(#info{p=Parent} = Info) ->
         meta(Info);
     
     {status, Pid} ->
-        io:format("meta, children: ~n"),
+        io:format("meta, size: ~p, children:~n", [Info#info.s]),
         N = Info#info.n,
         rpc(element(1, N), status),
         rpc(element(2, N), status),
@@ -201,7 +198,7 @@ meta(#info{p=Parent} = Info) ->
         meta(Info)
     end.
 
-split(#info{s=#vector{x=X, y=Y, z=Z}} = Info, Objects) when X/4+Y/4+Z/4 >= ?MIN_CELL_SIZE ->
+split(#info{s=S} = Info, Objects) when S/4 >= ?MIN_CELL_SIZE ->
     io:format("going to split~n"),
     Navigation = {create(1, Info, Objects),
                   create(2, Info, Objects),
@@ -216,50 +213,50 @@ split(Info, Objects) ->
     io:format("cell overloaded~n"),
     cell(Info, Objects).
 
-filter(1, O, SX, SY, SZ, LX, LY, LZ) ->
-    {#vector{x=LX-SX/4, y=LY-SY/4, z=LZ-SZ/4},
+filter(1, O, S, LX, LY, LZ) ->
+    {#vector{x=LX-S/4, y=LY-S/4, z=LZ-S/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
                      if X < LX andalso Y < LY andalso Z < LZ -> true; 
                      true -> false end 
                  end, O)};
-filter(2, O, SX, SY, SZ, LX, LY, LZ) ->
-    {#vector{x=LX-SX/4, y=LY-SY/4, z=LZ+SZ/4},
+filter(2, O, S, LX, LY, LZ) ->
+    {#vector{x=LX-S/4, y=LY-S/4, z=LZ+S/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
                      if X < LX andalso Y < LY andalso Z >= LZ -> true; 
                      true -> false end 
                  end, O)};
-filter(3, O, SX, SY, SZ, LX, LY, LZ) ->
-    {#vector{x=LX-SX/4, y=LY+SY/4, z=LZ-SZ/4},
+filter(3, O, S, LX, LY, LZ) ->
+    {#vector{x=LX-S/4, y=LY+S/4, z=LZ-S/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
                      if X < LX andalso Y >= LY andalso Z < LZ -> true; 
                      true -> false end 
                  end, O)};
-filter(4, O, SX, SY, SZ, LX, LY, LZ) ->
-    {#vector{x=LX-SX/4, y=LY+SY/4, z=LZ+SZ/4},
+filter(4, O, S, LX, LY, LZ) ->
+    {#vector{x=LX-S/4, y=LY+S/4, z=LZ+S/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
                      if X < LX andalso Y >= LY andalso Z >= LZ -> true; 
                      true -> false end 
                  end, O)};
-filter(5, O, SX, SY, SZ, LX, LY, LZ) ->
-    {#vector{x=LX+SX/4, y=LY-SY/4, z=LZ-SZ/4},
+filter(5, O, S, LX, LY, LZ) ->
+    {#vector{x=LX+S/4, y=LY-S/4, z=LZ-S/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
                      if X >= LX andalso Y < LY andalso Z < LZ -> true; 
                      true -> false end 
                  end, O)};
-filter(6, O, SX, SY, SZ, LX, LY, LZ) ->
-    {#vector{x=LX+SX/4, y=LY-SY/4, z=LZ+SZ/4},
+filter(6, O, S, LX, LY, LZ) ->
+    {#vector{x=LX+S/4, y=LY-S/4, z=LZ+S/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
                      if X >= LX andalso Y < LY andalso Z >= LZ -> true; 
                      true -> false end 
                  end, O)};
-filter(7, O, SX, SY, SZ, LX, LY, LZ) ->
-    {#vector{x=LX+SX/4, y=LY+SY/4, z=LZ-SZ/4},
+filter(7, O, S, LX, LY, LZ) ->
+    {#vector{x=LX+S/4, y=LY+S/4, z=LZ-S/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
                      if X >= LX andalso Y >= LY andalso Z < LZ -> true; 
                      true -> false end 
                  end, O)};
-filter(8, O, SX, SY, SZ, LX, LY, LZ) ->
-    {#vector{x=LX+SX/4, y=LY+SY/4, z=LZ+SZ/4},
+filter(8, O, S, LX, LY, LZ) ->
+    {#vector{x=LX+S/4, y=LY+S/4, z=LZ+S/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
                      if X >= LX andalso Y >= LY andalso Z >= LZ -> true; 
                      true -> false end 
@@ -276,25 +273,20 @@ index(X, Y, Z) ->
     X * 4 + Y * 2 + Z + 1.
 
 bc_up(Info, #vector{x=OX, y=OY, z=OZ} = O, R, Message) ->
-    #info{l=#vector{x=LX, y=LY, z=LZ},
-          s=#vector{x=SX, y=SY, z=SZ}} = Info,
-    if LX-SX <  OX-R orelse LY-SY <  OY-R orelse LZ-SZ <  OZ-R orelse
-       LX+SX >= OX+R orelse LY+SY >= OY+R orelse LZ+SZ >= OZ+R ->
+    #info{l=#vector{x=LX, y=LY, z=LZ}, s=S} = Info,
+    if LX-S <  OX-R orelse LY-S <  OY-R orelse LZ-S <  OZ-R orelse
+       LX+S >= OX+R orelse LY+S >= OY+R orelse LZ+S >= OZ+R ->
         Info#info.p ! {bcc, self(), O, R, Message},
         ok;
     true ->
         ok
     end.
 
-bc_inrange(From, #vector{x=OX, y=OY, z=OZ}, R, Objects) ->
-    dict:filter(fun(K, #vector{x=KX, y=KY, z=KZ}) ->
-                    if From =/= K andalso
-                       KX < OX+R andalso KX > OX-R andalso
-                       KY < OY+R andalso KY > OY-R andalso
-                       KZ < OZ+R andalso KZ > OZ-R ->
-                        true;
-                    true ->
-                        false
+bc_inrange(From, O1, R, Objects) ->
+    dict:filter(fun(K, O2) ->
+                    D = d(O1, O2),
+                    if From =/= K andalso D =< R -> true;
+                                            true -> false
                     end 
                 end, Objects).
 
@@ -326,15 +318,15 @@ bc_down(Info, Except, Object, R, Message) ->
     if P1 =/= Except andalso R8 =< R -> P8 ! M; true -> ok end,
     ok.
 
-bc_down_cells(#vector{x=LX, y=LY, z=LZ}, #vector{x=SX, y=SY, z=SZ}, Object) ->
-    {d(#vector{x=LX-SX/4, y=LY-SY/4, z=LZ-SZ/4}, Object),
-     d(#vector{x=LX-SX/4, y=LY-SY/4, z=LZ+SZ/4}, Object),
-     d(#vector{x=LX-SX/4, y=LY+SY/4, z=LZ-SZ/4}, Object),
-     d(#vector{x=LX-SX/4, y=LY+SY/4, z=LZ+SZ/4}, Object),
-     d(#vector{x=LX+SX/4, y=LY-SY/4, z=LZ-SZ/4}, Object),
-     d(#vector{x=LX+SX/4, y=LY-SY/4, z=LZ+SZ/4}, Object),
-     d(#vector{x=LX+SX/4, y=LY+SY/4, z=LZ-SZ/4}, Object),
-     d(#vector{x=LX+SX/4, y=LY+SY/4, z=LZ+SZ/4}, Object)}.
+bc_down_cells(#vector{x=LX, y=LY, z=LZ}, S, Object) ->
+    {d(#vector{x=LX-S/4, y=LY-S/4, z=LZ-S/4}, Object),
+     d(#vector{x=LX-S/4, y=LY-S/4, z=LZ+S/4}, Object),
+     d(#vector{x=LX-S/4, y=LY+S/4, z=LZ-S/4}, Object),
+     d(#vector{x=LX-S/4, y=LY+S/4, z=LZ+S/4}, Object),
+     d(#vector{x=LX+S/4, y=LY-S/4, z=LZ-S/4}, Object),
+     d(#vector{x=LX+S/4, y=LY-S/4, z=LZ+S/4}, Object),
+     d(#vector{x=LX+S/4, y=LY+S/4, z=LZ-S/4}, Object),
+     d(#vector{x=LX+S/4, y=LY+S/4, z=LZ+S/4}, Object)}.
 
 d(#vector{x=X1, y=Y1, z=Z1},
   #vector{x=X2, y=Y2, z=Z2}) ->

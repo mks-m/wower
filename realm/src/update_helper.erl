@@ -1,10 +1,12 @@
 -module(update_helper).
--export([create_update/2]).
+-export([block/2, packet/1]).
+
 -include("common.hrl").
 -include("database_records.hrl").
 
 %create_update(Who, Char) when is_integer(Who) and Who < 256 ->
-create_update(Who, Char) ->
+block(Type, Char) ->
+    Who = type(Type),
     Fields   = update_fields:create(player),
     GameTime = common_helper:ms_time(),
     UB  = char_helper:unit_bytes_0(Char),
@@ -26,8 +28,7 @@ create_update(Who, Char) ->
                                   {unit, dynamic_flags},
                                   {player, player_bytes},
                                   {player, player_bytes_2}]),
-    Update = <<1?L,                      % blocks count
-               Who?B,                    % who create
+    Update = <<Who?B,                    % who create
                 
                255?B,                    % guid packing mask
                (Char#char.id)?L, 0?L,    % player guid
@@ -73,3 +74,31 @@ create_update(Who, Char) ->
                PB2?L                     % facial hair, unknown
                >>,
     Update.
+
+packet(Blocks) ->
+    L = length(Blocks),
+    packets(Blocks, <<L?L>>).
+
+packets([], Result) ->
+    Result;
+packets([Block|Rest], Result) ->
+    packets(Rest, <<Result/binary, Block/binary>>).
+
+type(values)        -> 0;
+type(movement)      -> 1;
+type(create_object) -> 2;
+type(create_self)   -> 3;
+type(out_of_range)  -> 4;
+type(in_range)      -> 5.
+
+flags(none)         -> 16#0000;
+flags(self)         -> 16#0001;
+flags(transport)    -> 16#0002;
+flags(has_target)   -> 16#0004;
+flags(low_guid)     -> 16#0008;
+flags(high_guid)    -> 16#0010;
+flags(living)       -> 16#0020;
+flags(has_position) -> 16#0040;
+flags(vehicle)      -> 16#0080;
+flags(unk1)         -> 16#0100;
+flags(unk2)         -> 16#0200.

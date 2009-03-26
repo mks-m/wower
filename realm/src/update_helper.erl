@@ -1,5 +1,5 @@
 -module(update_helper).
--export([block/2, packet/1]).
+-export([block/2, packet/1, message/1]).
 
 -include("common.hrl").
 -include("database_records.hrl").
@@ -83,6 +83,18 @@ packets([], Result) ->
     Result;
 packets([Block|Rest], Result) ->
     packets(Rest, <<Result/binary, Block/binary>>).
+
+message(Packet) ->
+    S = size(Packet),
+    if S > 50 ->
+        Compressed = compress(Packet),
+        {self(), smsg_compressed_update_object, Compressed};
+    true ->
+        {self(), smsg_update_object, Packet}
+    end.
+
+compress(Packet) ->
+    Packet.
 
 type(values)        -> 0;
 type(movement)      -> 1;

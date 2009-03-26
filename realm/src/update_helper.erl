@@ -91,7 +91,13 @@ message(Packet) ->
     end.
 
 compress(Packet) ->
-    Packet.
+    Z  = zlib:open(),
+    ok = zlib:deflateInit(Z, best_speed),
+    P  = zlib:deflate(Z, Packet),
+    L  = zlib:deflate(Z, [], finish),
+    ok = zlib:deflateEnd(Z),
+    zlib:close(Z),
+    list_to_binary([P|L]).
 
 type(values)        -> 0;
 type(movement)      -> 1;

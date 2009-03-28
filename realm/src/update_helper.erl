@@ -4,10 +4,8 @@
 -include("common.hrl").
 -include("database_records.hrl").
 
-%create_update(Who, Char) when is_integer(Who) and Who < 256 ->
 block(Type, Char) ->
     Target   = type(Type),
-    Fields   = update_fields:create(player),
     GameTime = common_helper:ms_time(),
     UB       = char_helper:unit_bytes_0(Char),
     PB1      = char_helper:player_bytes(Char),
@@ -83,7 +81,7 @@ packets([Block|Rest], Result) ->
 
 message(Packet) ->
     S = size(Packet),
-    if S > 50 ->
+    if S > 5000 ->
         Compressed = compress(Packet),
         {self(), smsg_compressed_update_object, Compressed};
     true ->
@@ -113,7 +111,7 @@ flags(has_target)   -> 16#0004;
 flags(low_guid)     -> 16#0008;
 flags(high_guid)    -> 16#0010;
 flags(living)       -> 16#0020;
-flags(has_position) -> 16#0040;
+flags(position)     -> 16#0040;
 flags(vehicle)      -> 16#0080;
 flags(unk1)         -> 16#0100;
 flags(unk2)         -> 16#0200.

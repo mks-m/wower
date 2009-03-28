@@ -8,3 +8,6 @@
 -define(L,   :32?I).                   % uint32 - L for long
 -define(W,   :16?I).                   % uint16 - W for word
 -define(B,    :8).                     % byte (doesn't need to be endianated)
+
+% size, location and object records
+-record(vector, {x, y, z}).

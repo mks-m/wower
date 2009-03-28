@@ -1,5 +1,5 @@
 -module(logon_server).
--export([start/0, start/1, load/0, compile/0, stop/0, restart/1, loop/1]).
+-export([start/0, stop/0, restart/0, loop/1]).
 
 -export([receiver/2, sender/2]).
 
@@ -7,6 +7,7 @@
 -include("database_records.hrl").
 
 start() ->
+    load(),
     crypto:start(),
     mnesia:start(),
     ets:new(connected_clients, [named_table, set, public]),
@@ -18,9 +19,8 @@ start() ->
 stop() ->
     gen_server:call(?MODULE, stop).
 
-restart(Method) ->
+restart() ->
     stop(),
-    ?MODULE:Method(),
     start().
 
 loop(Socket) ->
@@ -66,10 +66,6 @@ sender(Socket, Client) ->
             sender(Socket, Client)
     end.
 
-start(Method) ->
-    ?MODULE:Method(),
-    start().
-
 load() ->
     c:l(account_helper),
     c:l(char_helper),
@@ -80,14 +76,3 @@ load() ->
     c:l(packet_helper),
     c:l(srp6),
     c:l(tcp_server).
-
-compile() ->
-    c:c(account_helper),
-    c:c(char_helper),
-    c:c(common_helper),
-    c:c(logon_opcodes),
-    c:c(logon_packets),
-    c:c(logon_patterns),
-    c:c(packet_helper),
-    c:c(srp6),
-    c:c(tcp_server).

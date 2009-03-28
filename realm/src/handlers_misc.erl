@@ -30,3 +30,9 @@ cmsg_logout_cancel(S, State, _Data) when pid(State#client_state.logout) ->
 	
 cmsg_logout_cancel(_S, State, _Data) ->
 	State.
+    
+cmsg_standstatechange(S, State, Data) ->
+    <<StandState?B, _Rest/binary>> = Data,
+    S ! {self(), smsg_standstate_update, <<StandState?B>>},
+    NewState = State#client_state{stand_state=StandState},
+    NewState.

@@ -353,7 +353,7 @@ h(253) -> smsg_tutorial_flags;
 h(254) -> cmsg_tutorial_flag;
 h(255) -> cmsg_tutorial_clear;
 h(256) -> cmsg_tutorial_reset;
-h(257) -> cmsg_standstatechange;
+h(257) -> {handlers_misc, cmsg_standstatechange};
 h(258) -> cmsg_emote;
 h(259) -> smsg_emote;
 h(260) -> cmsg_text_emote;

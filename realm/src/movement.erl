@@ -135,7 +135,14 @@ movement(State, Data) ->
     State#client_state.current_map ! {set, self(), MI#movement_info.x,
                                                    MI#movement_info.y,
                                                    MI#movement_info.z},
+    if MI#movement_info.fall_time > 1100 ->
+        %calculate damage and damage inviroment sending
+        io:format("Damage from falling taking~n"),
+        ok;
+    true -> ok
+    end,
     State#client_state{char = Char}.
 
-fall_land(_S, State, _Data) ->
-    State.
+fall_land(_S, State, Data) ->
+    io:format("fall_land~n"),
+    movement(State, Data).

@@ -137,8 +137,15 @@ movement(State, Data) ->
                                                    MI#movement_info.z},
     if MI#movement_info.fall_time > 1100 ->
         %calculate damage and damage inviroment sending
-        io:format("Damage from falling taking~n"),
-        ok;
+        FallPerc = (MI#movement_info.fall_time) / 1100.0,
+        %must be max_health, remaking need...
+        PreDamage = round((FallPerc*FallPerc - 1)/9 * (State#client_state.char)#char.health),
+        if PreDamage > (State#client_state.char)#char.health ->
+            Damage = (State#client_state.char)#char.health;
+        true -> Damage = PreDamage
+        end,
+        (State#client_state.char)#char{health = ((State#client_state.char)#char.health - Damage)},
+        io:format("Damage from falling taking(~p)~n", [Damage]);
     true -> ok
     end,
     State#client_state{char = Char}.

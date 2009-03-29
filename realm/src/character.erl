@@ -287,13 +287,26 @@ cmsg_char_create(S, #client_state{account = Account, realm = Realm} = St, D) ->
     S ! {self(), smsg_char_create, <<16#2f?B>>},
     St.
 
+deal_damage(PreDamage, Char) ->
+    HP = Char#char.health,
+    if HP > PreDamage ->
+        Damage = PreDamage;
+    true -> Damage = HP
+    end,
+    Health = HP - Damage,
+    io:format("DealDamage : damage : ~p, health : ~p~n",[Damage, Health]),
+    {Damage ,Char#char{health = Health}}.
+
+send_die(_S, State) ->
+    State.
+
 send_enviroment_damage(S, State, Type, Damage) ->
     DmgType = enviroment_damage_type(Type),
+    {Dmg, Char} = deal_damage(Damage, State#client_state.char),
     Data = realm_patterns:send_enviroment_damage((State#client_state.char)#char.id,
-                                                    DmgType, Damage),
+                                                    DmgType, Dmg),
     S ! {self(), smsg_environmentaldamagelog, Data},
-    NewState = State,
-    NewState.
+    State#client_state{char = Char}.
     
 enviroment_damage_type(exhausted) ->    0;
 enviroment_damage_type(drowning) ->     1;

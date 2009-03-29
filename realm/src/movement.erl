@@ -3,7 +3,7 @@
 %% Description: movement flags and functions
 -module(movement).
 
--export([info/1, start_forward/3, start_backward/3,
+-export([movement_extract/1, start_forward/3, start_backward/3,
          heartbeat/3, start_turn_right/3, start_turn_left/3,
          stop_turn/3, stop/3, fall_land/3]).
 
@@ -36,55 +36,61 @@
 -define(waterwalking, 16#10000000).
 -define(safe_fall,    16#20000000).
 -define(unk3,         16#40000000).
-
-info(<<Flags?L, Unk1?W, Time?L, X?f, Y?f, Z?f, O?f, Rest/binary>>) ->
-    MI = #movement_info{flags = Flags, unk1 = Unk1, time = Time,
+    
+movement_extract(<<Flags?L, Unk1?W, Time?L, X?f, Y?f, Z?f, O?f, Rest/binary>>) ->
+    PreMI = #movement_info{flags = Flags, unk1 = Unk1, time = Time,
                         x = X, y = Y, z = Z, o = O},
-    %% io:format("mi1: ~p~n", [MI]),
-    if (Flags band ?on_transport) > 0 ->
-        <<T_guid?Q, Tx?f, Ty?f, Tz?f, 
-          To?f, T_time?L, T_seat?B, Rest2/binary>> = Rest,
-        MI2 = MI#movement_info{t_guid = T_guid, tx = Tx, ty = Ty, tz = Tz, 
-                               to = To, t_time = T_time, t_seat = T_seat};
-    true ->
-        MI2 = MI, Rest2 = Rest
-    end,
-    %% io:format("mi2: ~p~n", [MI2]),
-
-    if ((Flags band (?swimming bor ?flying2)) > 0) or 
-       ((Unk1 band 16#20) > 0) ->
-        <<S_pitch?f, Rest3/binary>> = Rest2,
-        MI3 = MI2#movement_info{s_pitch = S_pitch};
-    true ->
-        MI3 = MI2, Rest3 = Rest2
-    end,
-    %% io:format("mi3: ~p~n", [MI2]),
-
-    <<Fall_time?L, Rest4/binary>> = Rest3,
-    MI4 = MI3#movement_info{fall_time = Fall_time},
-    %% io:format("mi4: ~p~n", [MI2]),
-
-    if (Flags band ?jumping) > 0 ->
-        <<Unk2?f, J_sin?f, J_cos?f, J_speed?f, Rest5/binary>> = Rest4,
-        MI5 = MI4#movement_info{unk2 = Unk2, j_sin = J_sin, 
-                               j_cos = J_cos, j_speed = J_speed};
-    true ->
-        MI5 = MI4, Rest5 = Rest4
-    end,
-    %% io:format("mi5: ~p~n", [MI2]),
-
-    if (Flags band ?spline) > 0 ->
-        <<Unk3?f, _/binary>> = Rest5,
-        MI6 = MI5#movement_info{unk3 = Unk3};
-    true ->
-        MI6 = MI5
-    end,
-    %% io:format("mi6: ~p~n", [MI2]),
-
-    {ok, MI6};
-info(_) ->
+    {MI, _ExtRest} = extract_on_transport(PreMI, Rest),
+    {ok, MI};
+    
+movement_extract(_) ->
     {error, not_movement_info}.
 
+extract_on_transport(MovInfo, Data) ->
+    Flags = MovInfo#movement_info.flags,
+    if (Flags band ?on_transport) > 0 ->
+        <<T_guid?Q, Tx?f, Ty?f, Tz?f, 
+          To?f, T_time?L, T_seat?B, Rest/binary>> = Data,
+        extract_swimming_or_flying(MovInfo#movement_info{t_guid = T_guid, tx = Tx, ty = Ty, tz = Tz, 
+                               to = To, t_time = T_time, t_seat = T_seat}, Rest);
+    true ->
+        extract_swimming_or_flying(MovInfo, Data)
+    end.
+    
+extract_swimming_or_flying(MovInfo, Data)->
+    Flags = MovInfo#movement_info.flags,
+    Unk1 = MovInfo#movement_info.unk1,
+    if ((Flags band (?swimming bor ?flying2)) > 0) or 
+       ((Unk1 band 16#20) > 0) ->
+        <<S_pitch?f, Rest/binary>> = Data,
+        extract_fall_time(MovInfo#movement_info{s_pitch = S_pitch}, Rest);
+    true ->
+        extract_fall_time(MovInfo, Data)
+    end.
+    
+extract_fall_time(MovInfo, Data) ->
+    <<Fall_time?L, Rest/binary>> = Data,
+    extract_jumping(MovInfo#movement_info{fall_time = Fall_time}, Rest).
+
+extract_jumping(MovInfo, Data) ->
+    Flags = MovInfo#movement_info.flags,
+    if (Flags band ?jumping) > 0 ->
+        <<Unk2?f, J_sin?f, J_cos?f, J_speed?f, Rest/binary>> = Data,
+        extract_spline(MovInfo#movement_info{unk2 = Unk2, j_sin = J_sin, 
+                               j_cos = J_cos, j_speed = J_speed}, Rest);
+    true ->
+        extract_spline(MovInfo, Data)
+    end.
+
+extract_spline(MovInfo, Data) ->
+    Flags = MovInfo#movement_info.flags,
+    if (Flags band ?spline) > 0 ->
+        <<Unk3?f, Rest/binary>> = Data,
+        {MovInfo#movement_info{unk3 = Unk3}, Rest};
+    true ->
+        {MovInfo, Data}
+    end.
+    
 start_forward(_S, State, Data) ->
     io:format("forward:~n"),
     movement(State, Data, start_forward).
@@ -115,19 +121,19 @@ stop(_S, State, Data) ->
     movement(State, Data, stop).
 
 movement(State, Data, Handler) ->
-    {ok, MI} = info(Data),
-    lists:foldl(
-        fun
-        (E, I) ->
-            V = element(I, MI),
-            if V /= undefined -> 
-                io:format("  ~8s: ~p~n", [E, element(I, MI)]);
-            true ->
-                ok
-            end,
-            I + 1
-        end, 
-        2, record_info(fields, movement_info)),
+    {ok, MI} = movement_extract(Data),
+    %lists:foldl(
+    %    fun
+    %    (E, I) ->
+    %        V = element(I, MI),
+    %        if V /= undefined -> 
+    %            io:format("  ~8s: ~p~n", [E, element(I, MI)]);
+    %        true ->
+    %            ok
+    %        end,
+    %        I + 1
+    %    end, 
+    %    2, record_info(fields, movement_info)),
     Char = (State#client_state.char)#char{position_x  = MI#movement_info.x,
                                           position_y  = MI#movement_info.y,
                                           position_z  = MI#movement_info.z,

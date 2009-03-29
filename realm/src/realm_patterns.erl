@@ -4,10 +4,12 @@
          smsg_auth_response/0,
          smsg_char_enum/2,
          cmsg_ping/1,
-         cmsg_player_login/1
+         cmsg_player_login/1,
+         send_enviroment_damage/3
 		 ]).
 
 -include("database_records.hrl").
+%-include("common.hrl").
 
 -define(IN, /unsigned-little-integer).
 -define(NI, /unsigned-big-integer).
@@ -107,3 +109,8 @@ smsg_char_enum_equip(CharId) ->
 smsg_char_enum_equip([], Ready) -> Ready;
 smsg_char_enum_equip([_|Items], Ready) ->
     smsg_char_enum_equip(Items, <<Ready/binary, 0?L?IN, 0?B, 0?L?IN>>).
+    
+send_enviroment_damage(CharId, DmgType, Damage) ->
+    <<CharId?L?IN, 0?L?IN,          % guid
+    DmgType?B,                      % envdamage type
+    Damage?L?IN, 0?L?IN, 0?L?IN>>.  % damage

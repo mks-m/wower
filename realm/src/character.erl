@@ -166,6 +166,10 @@ in_world(#client_state{receiver=R, sender=S, char=Char}=State) ->
     {update_object, Message} -> 
         S ! {self(), smsg_update_object, Message},
         in_world(State);
+        
+    {damage, enviroment_damage, Type, Damage} ->
+        NewState = send_enviroment_damage(S, State, Type, Damage),
+        in_world(NewState);
 
     Any ->
         io:format("unauthorized: ~p~n", [Any]),
@@ -282,3 +286,19 @@ cmsg_char_create(S, #client_state{account = Account, realm = Realm} = St, D) ->
     ok = mnesia:dirty_write(Char),
     S ! {self(), smsg_char_create, <<16#2f?B>>},
     St.
+
+send_enviroment_damage(S, State, Type, Damage) ->
+    DmgType = enviroment_damage_type(Type),
+    Data = realm_patterns:send_enviroment_damage((State#client_state.char)#char.id,
+                                                    DmgType, Damage),
+    S ! {self(), smsg_environmentaldamagelog, Data},
+    NewState = State,
+    NewState.
+    
+enviroment_damage_type(exhausted) ->    0;
+enviroment_damage_type(drowning) ->     1;
+enviroment_damage_type(fall) ->         2;
+enviroment_damage_type(lava) ->         3;
+enviroment_damage_type(slime) ->        4;
+enviroment_damage_type(fire) ->         5;
+enviroment_damage_type(fall_to_void) -> 6.

@@ -87,34 +87,34 @@ info(_) ->
 
 start_forward(_S, State, Data) ->
     io:format("forward:~n"),
-    movement(State, Data).
+    movement(State, Data, start_forward).
 
 start_backward(_S, State, Data) ->
     io:format("backward:~n"),
-    movement(State, Data).
+    movement(State, Data, start_backward).
 
 heartbeat(_S, State, Data) ->
     io:format("heartbeat:~n"),
-    movement(State, Data),
+    movement(State, Data, heartbeat),
     State.
 
 start_turn_left(_S, State, Data) ->
     io:format("turn left:~n"),
-    movement(State, Data).
+    movement(State, Data, start_turn_left).
 
 start_turn_right(_S, State, Data) ->
     io:format("turn right:~n"),
-    movement(State, Data).
+    movement(State, Data, start_turn_right).
 
 stop_turn(_S, State, Data) ->
     io:format("turn stop:~n"),
-    movement(State, Data).
+    movement(State, Data, stop_turn).
 
 stop(_S, State, Data) ->
     io:format("stop:~n"),
-    movement(State, Data).
+    movement(State, Data, stop).
 
-movement(State, Data) ->
+movement(State, Data, Handler) ->
     {ok, MI} = info(Data),
     lists:foldl(
         fun
@@ -135,7 +135,7 @@ movement(State, Data) ->
     State#client_state.current_map ! {set, self(), MI#movement_info.x,
                                                    MI#movement_info.y,
                                                    MI#movement_info.z},
-    if MI#movement_info.fall_time > 1100 ->
+    if (fall_land =:= Handler) and (MI#movement_info.fall_time > 1100) ->
         %calculate damage and damage inviroment sending
         FallPerc = (MI#movement_info.fall_time) / 1100.0,
         %must be max_health, remaking need...
@@ -144,7 +144,7 @@ movement(State, Data) ->
             Damage = (State#client_state.char)#char.health;
         true -> Damage = PreDamage
         end,
-        (State#client_state.char)#char{health = ((State#client_state.char)#char.health - Damage)},
+        self() ! {damage, enviroment_damage, fall, Damage},
         io:format("Damage from falling taking(~p)~n", [Damage]);
     true -> ok
     end,
@@ -152,4 +152,4 @@ movement(State, Data) ->
 
 fall_land(_S, State, Data) ->
     io:format("fall_land~n"),
-    movement(State, Data).
+    movement(State, Data, fall_land).

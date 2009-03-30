@@ -24,11 +24,10 @@ block(Type, Char) ->
                                    {unit, dynamic_flags},
                                    {player, player_bytes},
                                    {player, player_bytes_2}]),
-    Flags  = flags(self) bor flags(living) bor flags(position),
+    Flags  = flags([self, living, position]),
     <<Target?B,                 % update target
 
-      255?B,                    % guid packing mask
-      (Char#char.id)?L, 0?L,    % player guid
+      (guid(Char#char.id, 0))/binary,
       4?B,                      % object type player
 
       Flags?B,                  % update flags
@@ -105,17 +104,25 @@ type(create_self)   -> 3;
 type(out_of_range)  -> 4;
 type(in_range)      -> 5.
 
-flags(none)         -> 16#0000;
-flags(self)         -> 16#0001;
-flags(transport)    -> 16#0002;
-flags(has_target)   -> 16#0004;
-flags(low_guid)     -> 16#0008;
-flags(high_guid)    -> 16#0010;
-flags(living)       -> 16#0020;
-flags(has_position) -> 16#0040;
-flags(vehicle)      -> 16#0080;
-flags(unk1)         -> 16#0100;
-flags(unk2)         -> 16#0200.
+flag(none)         -> 16#0000;
+flag(self)         -> 16#0001;
+flag(transport)    -> 16#0002;
+flag(has_target)   -> 16#0004;
+flag(low_guid)     -> 16#0008;
+flag(high_guid)    -> 16#0010;
+flag(living)       -> 16#0020;
+flag(has_position) -> 16#0040;
+flag(vehicle)      -> 16#0080;
+flag(unk1)         -> 16#0100;
+flag(unk2)         -> 16#0200.
+
+flags(List) ->
+    flags(List, 0).
+
+flags([], Flags) ->
+    Flags;
+flags([Flag|Rest], Flags) ->
+    flags(Rest, Flags bor flag(Flag)).
 
 guid(HG, LG) ->
     <<255?B, HG?L, LG?L>>.

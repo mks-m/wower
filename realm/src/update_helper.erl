@@ -4,7 +4,6 @@
 -include("common.hrl").
 -include("database_records.hrl").
 
-%create_update(Who, Char) when is_integer(Who) and Who < 256 ->
 block(Type, Char) ->
     Target   = type(Type),
     Fields   = update_fields:create(player),
@@ -13,18 +12,18 @@ block(Type, Char) ->
     PB1      = char_helper:player_bytes(Char),
     PB2      = char_helper:player_bytes_2(Char),
     BitMask  = update_fields:mask([{object, guid},
-                                  {object, guid_2},
-                                  {object, type},
-                                  {object, scale_x},
-                                  {unit, bytes_0},
-                                  {unit, health},
-                                  {unit, maxhealth},
-                                  {unit, level},
-                                  {unit, factiontemplate},
-                                  {unit, displayid},
-                                  {unit, dynamic_flags},
-                                  {player, player_bytes},
-                                  {player, player_bytes_2}]),
+                                   {object, guid_2},
+                                   {object, type},
+                                   {object, scale_x},
+                                   {unit, bytes_0},
+                                   {unit, health},
+                                   {unit, maxhealth},
+                                   {unit, level},
+                                   {unit, factiontemplate},
+                                   {unit, displayid},
+                                   {unit, dynamic_flags},
+                                   {player, player_bytes},
+                                   {player, player_bytes_2}]),
     Flags  = flags(self) bor flags(living) bor flags(position),
     <<Target?B,                 % update target
 
@@ -117,3 +116,6 @@ flags(has_position) -> 16#0040;
 flags(vehicle)      -> 16#0080;
 flags(unk1)         -> 16#0100;
 flags(unk2)         -> 16#0200.
+
+guid(HG, LG) ->
+    <<255?B, HG?L, LG?L>>.

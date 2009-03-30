@@ -6,7 +6,6 @@
 
 block(Type, Char) ->
     Target   = type(Type),
-    Fields   = update_fields:create(player),
     GameTime = common_helper:ms_time(),
     UB       = char_helper:unit_bytes_0(Char),
     PB1      = char_helper:player_bytes(Char),
@@ -96,6 +95,8 @@ compress(Packet) ->
     ok = zlib:deflateEnd(Z),
     zlib:close(Z),
     list_to_binary([P|L]).
+
+object(player) -> 4.
 
 type(values)        -> 0;
 type(movement)      -> 1;

@@ -57,7 +57,7 @@ block(Type, Char) ->
                                    {unit, dynamic_flags},
                                    {player, player_bytes},
                                    {player, player_bytes_2}]),
-    Flags  = flags([self, living, position]),
+    Flags  = update_flags([self, living, position]),
     <<Target?B,                 % update target
 
       (guid(Char#char.id, 0))/binary,

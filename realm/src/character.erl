@@ -56,7 +56,7 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         MapPid ! {bco, self(), #vector{x=Char#char.position_x,
                                         y=Char#char.position_y,
                                         z=Char#char.position_z},
-                        #vector{x=30,y=30,z=30}, {object_update, OtherUpdate}},
+                        #vector{x=30,y=30,z=30}, {object_update, B}},
         MapPid ! {add, self(), Char#char.position_x,
                                Char#char.position_y,
                                Char#char.position_z},

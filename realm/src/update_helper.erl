@@ -98,12 +98,12 @@ compress(Packet) ->
 
 object(player) -> 4.
 
-type(values)        -> 0;
-type(movement)      -> 1;
-type(create_object) -> 2;
-type(create_self)   -> 3;
-type(out_of_range)  -> 4;
-type(in_range)      -> 5.
+type(values)         -> 0;
+type(movement)       -> 1;
+type(create_object)  -> 2;
+type(create_object2) -> 3;
+type(out_of_range)   -> 4;
+type(in_range)       -> 5.
 
 flag(none)         -> 16#0000;
 flag(self)         -> 16#0001;

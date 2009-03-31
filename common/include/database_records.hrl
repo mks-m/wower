@@ -7,3 +7,5 @@
                   display_id, strength, agility, stamina, intellect, spirit, 
                   health, mana, focus, power, intro, attack_power, min_dmg, 
                   max_dmg, scale}).
+-record(pet,     {id, owner}).
+

@@ -4,8 +4,42 @@
 -include("common.hrl").
 -include("database_records.hrl").
 
+%% A9 packet description
+%% smsg_update_object / smsg_compressed_update_object
+%%
+%% long       N         number of update blocks
+%% - N times
+%%     byte             update type
+%%     guid             object guid
+%%     byte             object type
+%%     byte             update flags
+%%     long             movement flags
+%%     word             unknown
+%%     long             game time
+%%     float     4      x, y, z and orientation
+%%     long             falling time
+%%     float     9      speeds: walk, run, walk back, 
+%%                              swim, swim back, fly
+%%                              fly back, turn, pitch
+%%     byte   M         number of long's after this byte
+%%     long      M      bitmask in which i'th bit means if i'th 
+%%                      field from object's blob is present
+
+-record(update_block, {update_type,
+                       object_guid,
+                       object_type,
+                       update_flags,
+                       movement_flags,
+                       unknown = 0,
+                       game_time,
+                       position,
+                       fall_time,
+                       speeds,
+                       mask,
+                       fields}).
+
 block(Type, Char) ->
-    Target   = type(Type),
+    Target   = update_type(Type),
     GameTime = common_helper:ms_time(),
     UB       = char_helper:unit_bytes_0(Char),
     PB1      = char_helper:player_bytes(Char),
@@ -27,7 +61,7 @@ block(Type, Char) ->
     <<Target?B,                 % update target
 
       (guid(Char#char.id, 0))/binary,
-      4?B,                      % object type player
+      (typeid(player))?B,       % object type player
 
       Flags?B,                  % update flags
       0?L,                      % move flags
@@ -96,34 +130,44 @@ compress(Packet) ->
     zlib:close(Z),
     list_to_binary([P|L]).
 
-object(player) -> 4.
+update_type(values)         -> 0;
+update_type(movement)       -> 1;
+update_type(create_object)  -> 2;
+update_type(create_object2) -> 3;
+update_type(out_of_range)   -> 4;
+update_type(in_range)       -> 5.
 
-type(values)         -> 0;
-type(movement)       -> 1;
-type(create_object)  -> 2;
-type(create_object2) -> 3;
-type(out_of_range)   -> 4;
-type(in_range)       -> 5.
+update_flag(none)         -> 16#0000;
+update_flag(self)         -> 16#0001;
+update_flag(transport)    -> 16#0002;
+update_flag(has_target)   -> 16#0004;
+update_flag(low_guid)     -> 16#0008;
+update_flag(high_guid)    -> 16#0010;
+update_flag(living)       -> 16#0020;
+update_flag(has_position) -> 16#0040;
+update_flag(vehicle)      -> 16#0080;
+update_flag(unk1)         -> 16#0100;
+update_flag(unk2)         -> 16#0200.
 
-flag(none)         -> 16#0000;
-flag(self)         -> 16#0001;
-flag(transport)    -> 16#0002;
-flag(has_target)   -> 16#0004;
-flag(low_guid)     -> 16#0008;
-flag(high_guid)    -> 16#0010;
-flag(living)       -> 16#0020;
-flag(has_position) -> 16#0040;
-flag(vehicle)      -> 16#0080;
-flag(unk1)         -> 16#0100;
-flag(unk2)         -> 16#0200.
+typeid(object)         -> 0;
+typeid(item)           -> 1;
+typeid(container)      -> 2;
+typeid(unit)           -> 3;
+typeid(player)         -> 4;
+typeid(game_object)    -> 5;
+typeid(dynami_cobject) -> 6;
+typeid(corpse)         -> 7;
+typeid(ai_group)       -> 8;
+typeid(area_trigger)   -> 9;
+typeid(pet)            -> typeid(unit).
 
-flags(List) ->
-    flags(List, 0).
+update_flags(List) ->
+    update_flags(List, 0).
 
-flags([], Flags) ->
+update_flags([], Flags) ->
     Flags;
-flags([Flag|Rest], Flags) ->
-    flags(Rest, Flags bor flag(Flag)).
+update_flags([Flag|Rest], Flags) ->
+    update_flags(Rest, Flags bor update_flag(Flag)).
 
 guid(HG, LG) ->
     <<255?B, HG?L, LG?L>>.

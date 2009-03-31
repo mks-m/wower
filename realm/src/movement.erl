@@ -11,31 +11,31 @@
 -include("database_records.hrl").
 -include("common.hrl").
 
--define(forward,      16#00000001).
--define(backward,     16#00000002).
--define(strafe_left,  16#00000004).
--define(strafe_right, 16#00000008).
--define(left,         16#00000010).
--define(right,        16#00000020).
--define(pitch_up,     16#00000040).
--define(pitch_down,   16#00000080).
--define(walk_mode,    16#00000100).
--define(on_transport, 16#00000200).
--define(levitating,   16#00000400).
--define(fly_unk1,     16#00000800).
--define(jumping,      16#00001000).
--define(unk4,         16#00002000).
--define(falling,      16#00004000).
--define(swimming,     16#00200000).
--define(fly_up,       16#00400000).
--define(can_fly,      16#00800000).
--define(flying,       16#01000000).
--define(flying2,      16#02000000).
--define(spline,       16#04000000).
--define(spline2,      16#08000000).
--define(waterwalking, 16#10000000).
--define(safe_fall,    16#20000000).
--define(unk3,         16#40000000).
+flag(forward) ->      16#00000001;
+flag(backward) ->     16#00000002;
+flag(strafe_left) ->  16#00000004;
+flag(strafe_right) -> 16#00000008;
+flag(left) ->         16#00000010;
+flag(right) ->        16#00000020;
+flag(pitch_up) ->     16#00000040;
+flag(pitch_down) ->   16#00000080;
+flag(walk_mode) ->    16#00000100;
+flag(on_transport) -> 16#00000200;
+flag(levitating) ->   16#00000400;
+flag(fly_unk1) ->     16#00000800;
+flag(jumping) ->      16#00001000;
+flag(unk4) ->         16#00002000;
+flag(falling) ->      16#00004000;
+flag(swimming) ->     16#00200000;
+flag(fly_up) ->       16#00400000;
+flag(can_fly) ->      16#00800000;
+flag(flying) ->       16#01000000;
+flag(flying2) ->      16#02000000;
+flag(spline) ->       16#04000000;
+flag(spline2) ->      16#08000000;
+flag(waterwalking) -> 16#10000000;
+flag(safe_fall) ->    16#20000000;
+flag(unk3) ->         16#40000000.
     
 movement_extract(<<Flags?L, Unk1?W, Time?L, X?f, Y?f, Z?f, O?f, Rest/binary>>) ->
     PreMI = #movement_info{flags = Flags, unk1 = Unk1, time = Time,
@@ -48,23 +48,25 @@ movement_extract(_) ->
 
 extract_on_transport(MovInfo, Data) ->
     Flags = MovInfo#movement_info.flags,
-    if (Flags band ?on_transport) > 0 ->
+    case (Flags band (flag(on_transport))) of
+    true -> 
         <<T_guid?Q, Tx?f, Ty?f, Tz?f, 
-          To?f, T_time?L, T_seat?B, Rest/binary>> = Data,
+        To?f, T_time?L, T_seat?B, Rest/binary>> = Data,
         extract_swimming_or_flying(MovInfo#movement_info{t_guid = T_guid, tx = Tx, ty = Ty, tz = Tz, 
-                               to = To, t_time = T_time, t_seat = T_seat}, Rest);
-    true ->
+                           to = To, t_time = T_time, t_seat = T_seat}, Rest);
+    _ ->
         extract_swimming_or_flying(MovInfo, Data)
     end.
+    
     
 extract_swimming_or_flying(MovInfo, Data)->
     Flags = MovInfo#movement_info.flags,
     Unk1 = MovInfo#movement_info.unk1,
-    if ((Flags band (?swimming bor ?flying2)) > 0) or 
-       ((Unk1 band 16#20) > 0) ->
+    case ((Flags band (flag(swimming) bor flag(flying2))) > 0) or ((Unk1 band 16#20) > 0) of
+    true ->
         <<S_pitch?f, Rest/binary>> = Data,
         extract_fall_time(MovInfo#movement_info{s_pitch = S_pitch}, Rest);
-    true ->
+    _ ->
         extract_fall_time(MovInfo, Data)
     end.
     
@@ -74,20 +76,22 @@ extract_fall_time(MovInfo, Data) ->
 
 extract_jumping(MovInfo, Data) ->
     Flags = MovInfo#movement_info.flags,
-    if (Flags band ?jumping) > 0 ->
+    case (Flags band flag(jumping)) > 0 of
+    true ->
         <<Unk2?f, J_sin?f, J_cos?f, J_speed?f, Rest/binary>> = Data,
         extract_spline(MovInfo#movement_info{unk2 = Unk2, j_sin = J_sin, 
                                j_cos = J_cos, j_speed = J_speed}, Rest);
-    true ->
+    _ ->
         extract_spline(MovInfo, Data)
     end.
 
 extract_spline(MovInfo, Data) ->
     Flags = MovInfo#movement_info.flags,
-    if (Flags band ?spline) > 0 ->
+    case (Flags band flag(spline)) > 0 of
+    true ->
         <<Unk3?f, Rest/binary>> = Data,
         {MovInfo#movement_info{unk3 = Unk3}, Rest};
-    true ->
+    _ ->
         {MovInfo, Data}
     end.
     

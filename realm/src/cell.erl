@@ -357,11 +357,6 @@ rpc(C, M) ->
         V -> V
     end.
 
-test(N) ->
-    C = cell:create(),
-    test(N, C),
-    C ! {bcm, undefined, #vector{x=0, y=0, z=0}, 32500, talk}.
-
 test(0, C) ->
     C;
 test(N, C) ->
@@ -394,9 +389,6 @@ tester(Cell, #vector{x=X, y=Y, z=Z}, Count) ->
         From ! {self(), Count},
         dead
     end.
-
-wait(N) ->
-    receive after N -> ok end.
 
 ptest(N) ->
     C = create(),

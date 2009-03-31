@@ -49,6 +49,7 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         ok = send_status(S),
         %ok = update_helper:send_self(S, Char),
         B = update_helper:block(create_object2, Char),
+        BinB = update_helper:block2binary(B),
         P = update_helper:packet([B]),
         M = update_helper:message(P),
         S ! M,
@@ -56,7 +57,7 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         MapPid ! {bco, self(), #vector{x=Char#char.position_x,
                                         y=Char#char.position_y,
                                         z=Char#char.position_z},
-                        #vector{x=30,y=30,z=30}, {object_update, B}},
+                        #vector{x=30,y=30,z=30}, {object_update, BinB}},
         MapPid ! {add, self(), Char#char.position_x,
                                Char#char.position_y,
                                Char#char.position_z},
@@ -163,7 +164,7 @@ in_world(#client_state{receiver=R, sender=S, char=Char}=State) ->
 		NewState = State#client_state{logout=no, current_map = -1, char=no},
 		not_in_world(NewState);
         
-    {update_object, Message} -> 
+    {object_update, Message} -> 
         S ! {self(), smsg_update_object, Message},
         in_world(State);
         
@@ -297,8 +298,8 @@ deal_damage(PreDamage, Char) ->
     io:format("DealDamage : damage : ~p, health : ~p~n",[Damage, Health]),
     {Damage ,Char#char{health = Health}}.
 
-send_die(_S, State) ->
-    State.
+%send_die(_S, State) ->
+%    State.
 
 send_enviroment_damage(S, State, Type, Damage) ->
     DmgType = enviroment_damage_type(Type),

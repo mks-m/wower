@@ -1,5 +1,5 @@
 -module(update_helper).
--export([block/2, packet/1, message/1]).
+-export([block/2, packet/1, message/1, block2binary/1]).
 
 -include("common.hrl").
 -include("database_records.hrl").
@@ -94,23 +94,27 @@ packet(Blocks) ->
 packets([], Result) ->
     Result;
 packets([B|Rest], Result) ->
-    {X, Y, Z, O} = B#update_block.position,
-    {W, R, WB, S, SB, F, FB, T, P} = B#update_block.speeds,
-    Binary = <<(B#update_block.update_type)?B,
-               (guid(B#update_block.object_guid, 0))/binary,
-               (typeid(B#update_block.object_type))?B,
-               (update_flags(B#update_block.update_flags))?B,
-               (B#update_block.movement_flags)?L,
-               (B#update_block.unknown)?W,
-               (B#update_block.game_time)?L,
-               X?f, Y?f, Z?f, O?f,
-               (B#update_block.fall_time)?L,
-               W?f, R?f, WB?f, S?f, SB?f, F?f, FB?f, T?f, P?f,
-               (size(B#update_block.mask) div 4)?B,
-               (B#update_block.mask)/binary,
-               (B#update_block.fields)/binary>>,
+    Binary = block2binary(B),
     packets(Rest, <<Result/binary, Binary/binary>>).
 
+block2binary(Block) ->
+    {X, Y, Z, O} = Block#update_block.position,
+    {W, R, WB, S, SB, F, FB, T, P} = Block#update_block.speeds,
+    Binary = <<(Block#update_block.update_type)?B,
+               (guid(Block#update_block.object_guid, 0))/binary,
+               (typeid(Block#update_block.object_type))?B,
+               (update_flags(Block#update_block.update_flags))?B,
+               (Block#update_block.movement_flags)?L,
+               (Block#update_block.unknown)?W,
+               (Block#update_block.game_time)?L,
+               X?f, Y?f, Z?f, O?f,
+               (Block#update_block.fall_time)?L,
+               W?f, R?f, WB?f, S?f, SB?f, F?f, FB?f, T?f, P?f,
+               (size(Block#update_block.mask) div 4)?B,
+               (Block#update_block.mask)/binary,
+               (Block#update_block.fields)/binary>>,
+    Binary.
+    
 message(Packet) ->
     S = size(Packet),
     if S > 5000 ->

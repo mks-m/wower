@@ -7,21 +7,11 @@
 -include("database_records.hrl").
 -include("dbc_records.hrl").
 -include("more_records.hrl").
+-include("common.hrl").
 
 -import(packet_helper, [make_cstring/1,
                         read_cstring/1]).
 -import(common_helper, [do/1]).
-
-% network defines
--define(I, /unsigned-little-integer).
--define(O, /unsigned-big-integer).
--define(b,  /bytes).                   % that's for plain text
--define(f,  :32/float-little).         % float values obviously
--define(SH, :160?I).                   % SH is for sha1
--define(Q,   :64?I).                   % uint64 - Q for quad
--define(L,   :32?I).                   % uint32 - L for long
--define(W,   :16?I).                   % uint16 - W for word
--define(B,    :8).                     % byte (doesn't need to be endianated)
 
 init(State) ->
     not_in_world(State).
@@ -63,6 +53,10 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         M = update_helper:message(P),
         S ! M,
         put(tick_count, 0),
+        MapPid ! {bco, self(), #vector{x=Char#char.position_x,
+                                        y=Char#char.position_y,
+                                        z=Char#char.position_z},
+                        #vector{x=30,y=30,z=30}, {object_update, OtherUpdate}},
         MapPid ! {add, self(), Char#char.position_x,
                                Char#char.position_y,
                                Char#char.position_z},
@@ -164,9 +158,15 @@ in_world(#client_state{receiver=R, sender=S, char=Char}=State) ->
     {R, Handler, Data} ->
         io:format("unhandled: ~p(~p)~n", [Handler, Data]),
         in_world(State);
+
     logout ->
 		NewState = State#client_state{logout=no, current_map = -1, char=no},
 		not_in_world(NewState);
+        
+    {update_object, Message} -> 
+        S ! {self(), smsg_update_object, Message},
+        in_world(State);
+
     Any ->
         io:format("unauthorized: ~p~n", [Any]),
         in_world(State)

@@ -114,7 +114,7 @@ packets([Block|Rest], Result) ->
 
 message(Packet) ->
     S = size(Packet),
-    if S > 50 ->
+    if S > 5000 ->
         Compressed = compress(Packet),
         {self(), smsg_compressed_update_object, Compressed};
     true ->

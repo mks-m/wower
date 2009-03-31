@@ -57,58 +57,35 @@ block(Type, Char) ->
                                    {unit, dynamic_flags},
                                    {player, player_bytes},
                                    {player, player_bytes_2}]),
-    Flags  = update_flags([self, living, has_position]),
-    %#update_block{
-    %    update_type = Target,
-    %    object_guid = Char#char.id,
-    %    object_type = player,
-    %    update_flags = Flags,
-    %    
-    %}
-    <<Target?B,                 % update target
-
-      (guid(Char#char.id, 0))/binary,
-      (typeid(player))?B,       % object type player
-
-      Flags?B,                  % update flags
-      0?L,                      % move flags
-      0?W,                      % unknown
-
-      GameTime?L,               % current time
-
-      (Char#char.position_x)?f, % position x
-      (Char#char.position_y)?f, % position y
-      (Char#char.position_z)?f, % position z
-      (Char#char.orientation)?f,% orientation
-
-      0?L,                      % fall time
-
-      2.5?f,                    % walk speed
-      7?f,                      % run speed
-      4.5?f,                    % walk back speed
-      4.722222?f,               % swim speed
-      2.5?f,                    % swim back speed
-      7?f,                      % fly speed
-      4.5?f,                    % fly back speed
-      3.141593?f,               % turn speed
-      1.0?f,                    % pitch speed
-
-      (size(BitMask) div 4)?B,  % number of long's
-      BitMask/binary,           % bitmask
-
-      (Char#char.id)?L, 0?L,    % player guid
-      25?L,                     % player type
-      (Char#char.scale)?f,
-      UB?L,                     % race, class, gender, power
-      (Char#char.health)?L,
-      (Char#char.health)?L,     % max health
-      (Char#char.level)?L,
-      (Char#char.faction_template)?L,
-      (Char#char.display_id)?L,
-      0?L,                      % dynamic flag (0 = alive)
-      PB1?L,                    % skin, face, hair style, hair color
-      PB2?L                     % facial hair, unknown
-      >>.
+    #update_block{
+        update_type    = Target,
+        object_guid    = Char#char.id,
+        object_type    = player,
+        update_flags   = [self, living, has_position],
+        movement_flags = 0,
+        game_time      = GameTime,
+        position       = {Char#char.position_x,
+                          Char#char.position_y,
+                          Char#char.position_z,
+                          Char#char.orientation},
+        fall_time      = 0,
+        speeds         = {2.5, 7, 4.5, 4.72, 2.5,
+                          7, 4.5, 3.141593, 1.0},
+        mask           = BitMask,
+        fields         = <<
+            (Char#char.id)?L, 0?L,    % player guid
+            25?L,                     % player type
+            (Char#char.scale)?f,
+            UB?L,                     % race, class, gender, power
+            (Char#char.health)?L,
+            (Char#char.health)?L,     % max health
+            (Char#char.level)?L,
+            (Char#char.faction_template)?L,
+            (Char#char.display_id)?L,
+            0?L,                      % dynamic flag (0 = alive)
+            PB1?L,                    % skin, face, hair style, hair color
+            PB2?L                     % facial hair, unknown
+        >>}.
 
 packet(Blocks) ->
     L = length(Blocks),
@@ -116,8 +93,23 @@ packet(Blocks) ->
 
 packets([], Result) ->
     Result;
-packets([Block|Rest], Result) ->
-    packets(Rest, <<Result/binary, Block/binary>>).
+packets([B|Rest], Result) ->
+    {X, Y, Z, O} = B#update_block.position,
+    {W, R, WB, S, SB, F, FB, T, P} = B#update_block.speeds,
+    Binary = <<(B#update_block.update_type)?B,
+               (guid(B#update_block.object_guid, 0))/binary,
+               (typeid(B#update_block.object_type))?B,
+               (update_flags(B#update_block.update_flags))?B,
+               (B#update_block.movement_flags)?L,
+               (B#update_block.unknown)?W,
+               (B#update_block.game_time)?L,
+               X?f, Y?f, Z?f, O?f,
+               (B#update_block.fall_time)?L,
+               W?f, R?f, WB?f, S?f, SB?f, F?f, FB?f, T?f, P?f,
+               (size(B#update_block.mask) div 4)?B,
+               (B#update_block.mask)/binary,
+               (B#update_block.fields)/binary>>,
+    packets(Rest, <<Result/binary, Binary/binary>>).
 
 message(Packet) ->
     S = size(Packet),

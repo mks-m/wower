@@ -5,37 +5,11 @@
 
 -export([movement_extract/1, start_forward/3, start_backward/3,
          heartbeat/3, start_turn_right/3, start_turn_left/3,
-         stop_turn/3, stop/3, fall_land/3]).
+         stop_turn/3, stop/3, fall_land/3, jump/3]).
 
 -include("realm_records.hrl").
 -include("database_records.hrl").
 -include("common.hrl").
-
-flag(forward) ->      16#00000001;
-flag(backward) ->     16#00000002;
-flag(strafe_left) ->  16#00000004;
-flag(strafe_right) -> 16#00000008;
-flag(left) ->         16#00000010;
-flag(right) ->        16#00000020;
-flag(pitch_up) ->     16#00000040;
-flag(pitch_down) ->   16#00000080;
-flag(walk_mode) ->    16#00000100;
-flag(on_transport) -> 16#00000200;
-flag(levitating) ->   16#00000400;
-flag(fly_unk1) ->     16#00000800;
-flag(jumping) ->      16#00001000;
-flag(unk4) ->         16#00002000;
-flag(falling) ->      16#00004000;
-flag(swimming) ->     16#00200000;
-flag(fly_up) ->       16#00400000;
-flag(can_fly) ->      16#00800000;
-flag(flying) ->       16#01000000;
-flag(flying2) ->      16#02000000;
-flag(spline) ->       16#04000000;
-flag(spline2) ->      16#08000000;
-flag(waterwalking) -> 16#10000000;
-flag(safe_fall) ->    16#20000000;
-flag(unk3) ->         16#40000000.
     
 movement_extract(<<Flags?L, Unk1?W, Time?L, X?f, Y?f, Z?f, O?f, Rest/binary>>) ->
     PreMI = #movement_info{flags = Flags, unk1 = Unk1, time = Time,
@@ -48,7 +22,7 @@ movement_extract(_) ->
 
 extract_on_transport(MovInfo, Data) ->
     Flags = MovInfo#movement_info.flags,
-    case (Flags band (flag(on_transport))) of
+    case (Flags band (movement_helper:flag(on_transport))) of
     true -> 
         <<T_guid?Q, Tx?f, Ty?f, Tz?f, 
         To?f, T_time?L, T_seat?B, Rest/binary>> = Data,
@@ -62,7 +36,7 @@ extract_on_transport(MovInfo, Data) ->
 extract_swimming_or_flying(MovInfo, Data)->
     Flags = MovInfo#movement_info.flags,
     Unk1 = MovInfo#movement_info.unk1,
-    case ((Flags band (flag(swimming) bor flag(flying2))) > 0) or ((Unk1 band 16#20) > 0) of
+    case ((Flags band (movement_helper:flag(swimming) bor movement_helper:flag(flying2))) > 0) or ((Unk1 band 16#20) > 0) of
     true ->
         <<S_pitch?f, Rest/binary>> = Data,
         extract_fall_time(MovInfo#movement_info{s_pitch = S_pitch}, Rest);
@@ -76,7 +50,7 @@ extract_fall_time(MovInfo, Data) ->
 
 extract_jumping(MovInfo, Data) ->
     Flags = MovInfo#movement_info.flags,
-    case (Flags band flag(jumping)) > 0 of
+    case (Flags band movement_helper:flag(jumping)) > 0 of
     true ->
         <<Unk2?f, J_sin?f, J_cos?f, J_speed?f, Rest/binary>> = Data,
         extract_spline(MovInfo#movement_info{unk2 = Unk2, j_sin = J_sin, 
@@ -87,7 +61,7 @@ extract_jumping(MovInfo, Data) ->
 
 extract_spline(MovInfo, Data) ->
     Flags = MovInfo#movement_info.flags,
-    case (Flags band flag(spline)) > 0 of
+    case (Flags band movement_helper:flag(spline)) > 0 of
     true ->
         <<Unk3?f, Rest/binary>> = Data,
         {MovInfo#movement_info{unk3 = Unk3}, Rest};
@@ -163,3 +137,7 @@ movement(State, Data, Handler) ->
 fall_land(_S, State, Data) ->
     io:format("fall_land~n"),
     movement(State, Data, fall_land).
+    
+jump(_S, State, Data) ->
+    io:format("jump~n"),
+    movement(State, Data, jump).

@@ -62,7 +62,7 @@ block(Type, Char) ->
         object_guid    = Char#char.id,
         object_type    = player,
         update_flags   = [self, living, has_position],
-        movement_flags = 0,
+        movement_flags = [],
         game_time      = GameTime,
         position       = {Char#char.position_x,
                           Char#char.position_y,
@@ -100,11 +100,12 @@ packets([B|Rest], Result) ->
 block2binary(Block) ->
     {X, Y, Z, O} = Block#update_block.position,
     {W, R, WB, S, SB, F, FB, T, P} = Block#update_block.speeds,
+    MovFlags = movement_flags2binary(Block#update_block.movement_flags),
     Binary = <<(Block#update_block.update_type)?B,
                (guid(Block#update_block.object_guid, 0))/binary,
                (typeid(Block#update_block.object_type))?B,
                (update_flags(Block#update_block.update_flags))?B,
-               (Block#update_block.movement_flags)?L,
+               MovFlags?L,
                (Block#update_block.unknown)?W,
                (Block#update_block.game_time)?L,
                X?f, Y?f, Z?f, O?f,
@@ -115,6 +116,16 @@ block2binary(Block) ->
                (Block#update_block.fields)/binary>>,
     Binary.
     
+movement_flags2binary(Flags)->
+    movement_flags2binary(Flags, 0).
+
+movement_flags2binary([H | T], Result) when is_atom(H) ->
+    Res = Result bor movement_helper:flag(H),
+    movement_flags2binary(T, Res);
+    
+movement_flags2binary([], Result) ->
+    Result.
+
 message(Packet) ->
     S = size(Packet),
     if S > 5000 ->

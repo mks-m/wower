@@ -22,6 +22,8 @@
 %% byte      unk             0
 %% byte      error
 %% byte      terminator      0
+%%
+%% @spec error(int(), atom() | int()) -> binary().
 error(Opcode, Error) when atom(Error) ->
     <<Opcode?B, 0?B, (logon_opcodes:error(Error))?B, 0?B>>;
 error(Opcode, Error) when integer(Error) ->
@@ -46,6 +48,8 @@ error(Opcode, Error) ->
 %% long      ip
 %% byte    L account name length
 %% char L  N account name
+%%
+%% @spec auth_request(binary()) -> binary().
 auth_request(<<_Err?B, _Size?W?IN, _Game:4?b, _Major?B, 
                _Middle?B, _Minor?B, Build?W?IN, _Platform:4?b, 
                _Os:4?b, _Country:4?b, _TimeZone?L?IN, _IP:4?b, 
@@ -67,6 +71,8 @@ auth_request(_) ->
 %% i256      salt
 %% byte F    unknown
 %% byte      terminator?
+%%
+%% @spec auth_reply(tuple()) -> binary().
 auth_reply(H) ->
     <<0?B, 0?B, 0?B, (H#hash.public)?QQ?IN,
       1?B, 7?B, 32?B, (H#hash.modulus)?QQ?IN,
@@ -79,6 +85,8 @@ auth_reply(H) ->
 %%  crc      some CRC hash
 %% byte      number of keys
 %% byte      unknown
+%%
+%% @spec auth_proof(binary()) -> binary() | no.
 auth_proof(<<A?QQ?IN, M?SH?IN, _C?SH?IN, _N?B, _U?B>>) ->
     {ok, {A, M}};
 auth_proof(_) ->
@@ -91,6 +99,8 @@ auth_proof(_) ->
 %% i256      server session proof M2
 %% byte 9    unknown
 %% byte      terminator?
+%%
+%% @spec auth_reproof(tuple()) -> binary().
 auth_reproof(H) ->
     <<1?B, 0?B, (H#hash.session_proof)?SH?IN, 0?Q, 0?W>>.
 
@@ -98,6 +108,8 @@ auth_reproof(H) ->
 %%
 %% byte      cmd
 %% byte 5    unknown
+%%
+%% @spec realmlist_request(binary()) -> {ok}.
 realmlist_request(<<_Rest?b>>) ->
     {ok};
 realmlist_request(_) ->
@@ -122,12 +134,16 @@ realmlist_request(_) ->
 %%   byte      unknown         0x2C
 %% byte      unknown           0x10
 %% byte      terminator?       0
+%%
+%% @spec realmlist_reply([tuple()], [tuple()]) -> binary().
 realmlist_reply(Realms, AccData) ->
     BinaryRealms = realmlist_build(Realms, AccData),
     <<16?B, (size(BinaryRealms) + 8)?W?IN, 0?L, (length(Realms))?W?IN, 
       BinaryRealms/binary, 16#10?B, 0?B>>.
 
 %% realmlist helper function
+%%
+%% @spec realmlist_build([tuple()], [tuple()]) -> binary().
 realmlist_build([], []) ->
     <<>>;
 realmlist_build([R|Realms], [A|AccData]) ->

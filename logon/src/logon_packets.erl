@@ -10,7 +10,8 @@
 %% and will try to find account and generate 
 %% authentication hash for connection
 %% will switch to decoder if such hash generated
-%%
+%% 
+%% @spec authenticate(atom(), binary(), tuple()) -> {send, binary(), tuple()}.
 authenticate(Opcode, Data, State) ->
     case logon_patterns:auth_request(Data) of
     {ok, Build, Account} when Build > 9182 ->
@@ -34,6 +35,7 @@ authenticate(Opcode, Data, State) ->
 %% back to receiver if unknown packet or wrong
 %% account / password / whatever
 %%
+%% @spec proof(atom(), binary(), tuple()) -> {send, binary(), tuple()} | {skip, ok, tuple()}.
 proof(Opcode, Data, State) ->
     case logon_patterns:auth_proof(Data) of
     {ok, {A, M}} ->
@@ -51,6 +53,7 @@ proof(Opcode, Data, State) ->
         {skip, wrong_packet(proof, Data), State}
     end.
 
+%% @spec realmlist(atom(), binary(), tuple()) -> {send, binary(), tuple()} | {skip, ok, tuple()}.
 realmlist(_Opcode, Data, #logon_state{authenticated=yes} = State) ->
     case logon_patterns:realmlist_request(Data) of
     {ok} ->
@@ -64,12 +67,17 @@ realmlist(_Opcode, Data, #logon_state{authenticated=yes} = State) ->
 realmlist(Opcode, _, State) ->
     {send, logon_patterns:error(Opcode, acount_missing), State}.
 
+%% @spec wrong_opcode(atom, binary(), tuple()) -> {skip, ok, tuple()}.
 wrong_opcode(Opcode, _, State) ->
     io:format("unimplemented opcode ~p~n", [Opcode]),
     {skip, ok, State}.
 
+%% @spec wrong_packet(atom(), binary()) -> ok.
 wrong_packet(Handler, Data) ->
-    io:format("wrong packet for ~p :~n~p", [Handler, Data]).
+    io:format("wrong packet for ~p :~n~p", [Handler, Data]),
+    ok.
 
+%% @spec wrong_code(int()) -> ok.
 wrong_code(Error) ->
-    io:format("got error: ~p~n", [Error]).
+    io:format("got error: ~p~n", [Error]),
+    ok.

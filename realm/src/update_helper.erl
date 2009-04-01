@@ -38,6 +38,7 @@
                        mask,
                        fields}).
 
+%% @spec block(atom(), tuple()) -> tuple().
 block(Type, Char) ->
     Target   = update_type(Type),
     GameTime = common_helper:ms_time(),
@@ -87,10 +88,12 @@ block(Type, Char) ->
             PB2?L                     % facial hair, unknown
         >>}.
 
+%% @spec packet([tuple()]) -> binary().
 packet(Blocks) ->
     L = length(Blocks),
     packets(Blocks, <<L?L>>).
 
+%% @spec packets(list(), binary()) -> binary().
 packets([], Result) ->
     Result;
 packets([B|Rest], Result) ->
@@ -111,6 +114,7 @@ packets([B|Rest], Result) ->
                (B#update_block.fields)/binary>>,
     packets(Rest, <<Result/binary, Binary/binary>>).
 
+%% @spec message(binary()) -> {pid(), atom(), binary()}.
 message(Packet) ->
     S = size(Packet),
     if S > 5000 ->
@@ -120,6 +124,7 @@ message(Packet) ->
         {self(), smsg_update_object, Packet}
     end.
 
+%% @spec compress(binary()) -> binary().
 compress(Packet) ->
     Z  = zlib:open(),
     ok = zlib:deflateInit(Z, best_speed),
@@ -129,6 +134,7 @@ compress(Packet) ->
     zlib:close(Z),
     list_to_binary([P|L]).
 
+%% @spec update_type(atom()) -> int().
 update_type(values)         -> 0;
 update_type(movement)       -> 1;
 update_type(create_object)  -> 2;
@@ -136,6 +142,7 @@ update_type(create_object2) -> 3;
 update_type(out_of_range)   -> 4;
 update_type(in_range)       -> 5.
 
+%% @spec update_flag(atom()) -> int().
 update_flag(none)         -> 16#0000;
 update_flag(self)         -> 16#0001;
 update_flag(transport)    -> 16#0002;
@@ -148,6 +155,7 @@ update_flag(vehicle)      -> 16#0080;
 update_flag(unk1)         -> 16#0100;
 update_flag(unk2)         -> 16#0200.
 
+%% @spec typeid(atom()) -> int().
 typeid(object)         -> 0;
 typeid(item)           -> 1;
 typeid(container)      -> 2;
@@ -160,13 +168,16 @@ typeid(ai_group)       -> 8;
 typeid(area_trigger)   -> 9;
 typeid(pet)            -> typeid(unit).
 
+%% update_flags(list()) -> int().
 update_flags(List) ->
     update_flags(List, 0).
 
+%% update_flags(list(), int()) -> int().
 update_flags([], Flags) ->
     Flags;
 update_flags([Flag|Rest], Flags) ->
     update_flags(Rest, Flags bor update_flag(Flag)).
 
+%% guid(int(), int()) -> int().
 guid(HG, LG) ->
     <<255?B, HG?L, LG?L>>.

@@ -15,6 +15,7 @@
 -define(W,   :16).
 -define(B,    :8).
 
+%% @spec challenge(tuple()) -> tuple().
 challenge(A) ->
     Credentials      = crypto:sha(A#account.name ++ ":" ++ A#account.password),
     H = #hash{salt   = random:uniform(16#FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF),
@@ -25,6 +26,7 @@ challenge(A) ->
     PublicB          = crypto:mod_exp(Verifier * 3 + Temp, 1, H#hash.modulus),
     H#hash{public=PublicB, verifier=Verifier}.
 
+%% @spec proof(int(), tuple(), tuple()) -> tuple().
 proof(A, H, P) ->
     U   = sha(<<A?QQ?IN, (H#hash.public)?QQ?IN>>),
     S1  = crypto:mod_exp(H#hash.verifier, U, H#hash.modulus),
@@ -42,20 +44,24 @@ proof(A, H, P) ->
     SP  = sha(<<A?QQ?IN, CP?SH?IN, SK/binary>>),
     H#hash{session_key = SK, client_proof = CP, session_proof = SP}.
 
+%% @spec sha(binary()) -> int().
 sha(Data) ->
     <<Result:160?IN>> = crypto:sha(Data),
     Result.
 
+%% @spec even(binary()) -> binary().
 even(<<X:8,_:8,Z:8>>) ->      <<X:8, Z:8>>;
 even(<<X:8,_:8>>) ->          <<X:8>>;
 even(<<_:8>>) ->              <<>>;
 even(<<X:8,_:8,Z/binary>>) -> <<X:8, (even(Z))/binary>>.
 
+%% @spec odd(binary()) -> binary().
 odd(<<_:8,X:8,_:8>>) ->      <<X>>;
 odd(<<_:8,X:8>>) ->          <<X>>;
 odd(<<X:8>>) ->              <<X>>;
 odd(<<_:8,X:8,Z/binary>>) -> <<X:8, (odd(Z))/binary>>.
 
+%% @spec merge(binary(), binary()) -> binary().
 merge(<<>>, <<>>) ->
     <<>>;
 merge(<<H1:8, T1/binary>>, <<H2:8, T2/binary>>) ->

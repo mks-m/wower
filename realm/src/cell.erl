@@ -4,24 +4,28 @@
 -export([start/0, stop/0, world/0, create/0, init/1, init/2]).
 -export([test/2, ptest/1, tester/2]).
 
+% size, location and object records
+%% @type vector() = {vector, float(), float(), float()}
+-record(vector, {x, y, z}).
+
 % general info about cell
 % p - parent cell
 % n - navigation record or neighbours record
 % l - location of center of the cell
 % s - size of cell
+%% @type info() = {info, pid() | undefined, tuple() | undefined, vector(), float()}
 -record(info, {p, n, l, s}).
-
-% size, location and object records
--record(vector, {x, y, z}).
 
 -define(MAX_PER_CELL, 1000).
 -define(MIN_CELL_SIZE, 500).
 
+%% @spec start() -> ok.
 start() ->
     Pid = spawn(?MODULE, world, []),
     register(world, Pid),
     ok.
 
+%% @spec world() -> ok.
 world() ->
     Maps = dict:from_list([{  0, create()},   % Eastern Kingdoms
                            {  1, create()},   % Kalimdor
@@ -29,6 +33,7 @@ world() ->
                            {571, create()}]), % Northrend
     world(Maps).
 
+%% @spec world(dictionary()) -> ok.
 world(Maps) ->
     receive
     {From, find, MapId} ->
@@ -42,27 +47,31 @@ world(Maps) ->
         world(Maps)
     end.
 
-
+%% @spec stop() -> ok.
 stop() ->
     world ! stop,
     ok.
 
 % used to create root node
+%% @spec create() -> pid().
 create() ->
     Info = #info{s=65000.0, l=#vector{x=0.0, y=0.0, z=0.0}},
     spawn_link(?MODULE, init, [Info]).
 
-% used internally to create child nodes while splitting cell 
+% used internally to create child nodes while splitting cell
+%% @spec create(int(), info()) -> pid().
 create(Bitmap, #info{s=S, l=#vector{x=LX, y=LY, z=LZ}}, O) ->
     {NL, NO} = filter(Bitmap, O, S, LX, LY, LZ),
     spawn_link(?MODULE, init, [#info{p=self(), s=S/2, l=NL}, NO]).
 
 % initializes root node
+%% @spec init(info()) -> ok.
 init(#info{} = Info) ->
     Objects = dict:new(),
     cell(Info, Objects).
 
 % initializes child cell with predefined objects count
+%% @spec start(info(), dictionary()) -> ok.
 init(#info{} = Info, Objects) ->
     cell(Info, Objects).
 
@@ -85,6 +94,7 @@ init(#info{} = Info, Objects) ->
 %   status: used for testing purposes
 %
 %   die: dispose objects storage and end process
+%% @spec cell(info(), dictionary()) -> ok.
 cell(#info{p=Parent} = Info, Objects) ->
     receive
     {set, ObjectPid, X, Y, Z} ->
@@ -151,6 +161,7 @@ cell(#info{p=Parent} = Info, Objects) ->
 %
 %   die: dispose objects storage and end process
 % TODO: merge meta-cell into one cell
+%% @spec meta(info()) -> ok.
 meta(#info{p=Parent} = Info) ->
     receive
     {add, ObjectPid, X, Y, Z} ->
@@ -216,6 +227,7 @@ meta(#info{p=Parent} = Info) ->
         meta(Info)
     end.
 
+%% @spec split(info(), dictionary()) -> ok.
 split(#info{s=S} = Info, Objects) when S/2 >= ?MIN_CELL_SIZE ->
     io:format("going to split~n"),
     Navigation = {create(1, Info, Objects),
@@ -231,6 +243,7 @@ split(Info, Objects) ->
     io:format("cell overloaded~n"),
     cell(Info, Objects).
 
+%% @spec filter(int(), dictionary(), float(), float(), float(), float()) -> {vector(), dictionary()}.
 filter(1, O, S, LX, LY, LZ) ->
     {#vector{x=LX-S/4, y=LY-S/4, z=LZ-S/4},
      dict:filter(fun(_, #vector{x=X, y=Y, z=Z}) -> 
@@ -280,16 +293,20 @@ filter(8, O, S, LX, LY, LZ) ->
                      true -> false end 
                  end, O)}.
 
+%% @spec compare(float(), float()) -> 0 | 1.
 compare(X, Y) when X < Y -> 0;
 compare(_, _) -> 1.
 
+%% @spec index(vector(), vector()) -> int().
 index(#vector{x=X1, y=Y1, z=Z1}, 
       #vector{x=X2, y=Y2, z=Z2}) ->
     index(compare(X1, X2), compare(Y1, Y2), compare(Z1, Z2)).
 
+%% @spec index(int(), int(), int()) -> int().
 index(X, Y, Z) ->
     X * 4 + Y * 2 + Z + 1.
 
+%% @spec bc_up(info(), vector(), float(), any()) -> ok.
 bc_up(Info, #vector{x=OX, y=OY, z=OZ} = O, R, Message) ->
     #info{l=#vector{x=LX, y=LY, z=LZ}, s=S} = Info,
     if LX-S <  OX-R orelse LY-S <  OY-R orelse LZ-S <  OZ-R orelse
@@ -300,6 +317,7 @@ bc_up(Info, #vector{x=OX, y=OY, z=OZ} = O, R, Message) ->
         ok
     end.
 
+%% @spec bc_inrange(pid(), vector(), float(), dictionary()) -> dictionary().
 bc_inrange(From, O1, R, Objects) ->
     dict:filter(fun(K, O2) ->
                     D = d(O1, O2),
@@ -308,6 +326,7 @@ bc_inrange(From, O1, R, Objects) ->
                     end 
                 end, Objects).
 
+%% @spec bc_down(info(), vector(), float(), any()) -> ok.
 bc_down(Info, Object, R, Message) ->
     M = {bcm, self(), Object, R, Message},
     { P1, P2, P3, P4, P5, P6, P7, P8 } = Info#info.n,
@@ -322,10 +341,11 @@ bc_down(Info, Object, R, Message) ->
     if R8 =< R -> P8 ! M; true -> ok end,
     ok.
 
+%% @spec bc_down(info(), pid(), vector(), float(), any()) -> ok.
 bc_down(Info, Except, Object, R, Message) ->
     M = {bcm, self(), Object, R, Message},
     { P1, P2, P3, P4, P5, P6, P7, P8 } = Info#info.n,
-    { R1, R2, R3, R4, R5, R6, R7, R8} = bc_down_cells(Info#info.l, Info#info.s, Object),
+    { R1, R2, R3, R4, R5, R6, R7, R8 } = bc_down_cells(Info#info.l, Info#info.s, Object),
     if P1 =/= Except andalso R1 =< R -> P1 ! M; true -> ok end,
     if P1 =/= Except andalso R2 =< R -> P2 ! M; true -> ok end,
     if P1 =/= Except andalso R3 =< R -> P3 ! M; true -> ok end,
@@ -336,6 +356,7 @@ bc_down(Info, Except, Object, R, Message) ->
     if P1 =/= Except andalso R8 =< R -> P8 ! M; true -> ok end,
     ok.
 
+%% @spec bc_down_cells(vector(), float(), vector()) -> ok.
 bc_down_cells(#vector{x=LX, y=LY, z=LZ}, S, Object) ->
     {d(#vector{x=LX-S/4, y=LY-S/4, z=LZ-S/4}, Object),
      d(#vector{x=LX-S/4, y=LY-S/4, z=LZ+S/4}, Object),
@@ -346,51 +367,15 @@ bc_down_cells(#vector{x=LX, y=LY, z=LZ}, S, Object) ->
      d(#vector{x=LX+S/4, y=LY+S/4, z=LZ-S/4}, Object),
      d(#vector{x=LX+S/4, y=LY+S/4, z=LZ+S/4}, Object)}.
 
+%% @spec d(vector(), vector()) -> float().
 d(#vector{x=X1, y=Y1, z=Z1},
   #vector{x=X2, y=Y2, z=Z2}) ->
     DX = X1-X2, DY = Y1-Y2, DZ = Z1-Z2,
     math:sqrt(DX*DX + DY*DY + DZ*DZ).
 
+%% @spec rpc(pid(), any()) -> any().
 rpc(C, M) ->
     C ! M,
     receive 
         V -> V
     end.
-
-test(0, C) ->
-    C;
-test(N, C) ->
-    V = #vector{x = random:uniform(65000.0) - 32500.0,
-                y = random:uniform(65000.0) - 32500.0,
-                z = random:uniform(65000.0) - 32500.0},
-    C ! {add, spawn(?MODULE, tester, [C, V]),
-              V#vector.x, V#vector.y, V#vector.z},
-    test(N-1, C).
-
-tester(Cell, Vector) ->
-    receive
-    talk ->
-        tester(Cell, Vector, 0)
-    end.
-
-tester(Cell, #vector{x=X, y=Y, z=Z}, Count) ->
-    V = #vector{x=X+uniform:random(),
-                y=Y+uniform:random(),
-                z=Z+uniform:random()},
-    receive
-    {Cell, rpc} ->
-        Cell ! ok,
-        Cell ! {set, self(), V#vector.x, V#vector.y, V#vector.z},
-        tester(Cell, V, Count);
-    {Cell, ok} ->
-        Cell ! {set, self(), V#vector.x, V#vector.y, V#vector.z},
-        tester(Cell, Count+1);
-    {From, die} ->
-        From ! {self(), Count},
-        dead
-    end.
-
-ptest(N) ->
-    C = create(),
-    test(N, C),
-    {C, length(erlang:processes())}.

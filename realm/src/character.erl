@@ -13,9 +13,11 @@
                         read_cstring/1]).
 -import(common_helper, [do/1]).
 
+%% @spec init(tuple()) -> ok.
 init(State) ->
     not_in_world(State).
 
+%% @spec not_in_world(tuple()) -> ok.
 not_in_world(#client_state{receiver=R, sender=S}=State) ->
     receive
     {R, cmsg_realm_split, _} ->
@@ -82,6 +84,7 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         not_in_world(State)
     end.
 
+%% @spec in_world(tuple()) -> ok.
 in_world(#client_state{receiver=R, sender=S, char=Char}=State) ->
     receive   
     {R, cmsg_name_query, _} ->
@@ -167,11 +170,15 @@ in_world(#client_state{receiver=R, sender=S, char=Char}=State) ->
         S ! {self(), smsg_update_object, Message},
         in_world(State);
 
+    die ->
+        ok;
+
     Any ->
         io:format("unauthorized: ~p~n", [Any]),
         in_world(State)
     end.
 
+%% @spec set_dungeon_difficulty(tuple(), int()) -> ok.
 set_dungeon_difficulty(S, -1) ->
     S ! {self(), msg_set_dungeon_difficulty, <<0?L, 1?L, 0?L>>},
     ok;
@@ -179,6 +186,7 @@ set_dungeon_difficulty(S, Difficulty) ->
     S ! {self(), msg_set_dungeon_difficulty, <<Difficulty?L>>},
     ok.
 
+%% @spec verify_world(pid(), tuple()) -> pid().
 verify_world(S, Char) ->
     S ! { self(), smsg_login_verify_world, 
           <<(Char#char.map_id)?f, (Char#char.position_x)?f, 
@@ -190,48 +198,60 @@ verify_world(S, Char) ->
         MapPid
     end.
 
+%% @spec send_account_data(pid()) -> ok.
 send_account_data(S) ->
     S ! {self(), smsg_account_data_times, <<0:1024>>},
     ok.
 
+%% @spec set_rest_start(pid()) -> ok.
 set_rest_start(S) ->
     GameTime = common_helper:game_time(),
     S ! {self(), smsg_set_rest_start, <<GameTime?L>>},
     ok.
 
+%% @spec set_tutorial_flag(pid()) -> ok.
 set_tutorial_flags(S) ->
     S ! {self(), smsg_tutorial_flags, <<0:256>>},
     ok.
 
+%% @spec send_spells_and_cooldowns(pid()) -> ok.
 send_spells_and_cooldowns(S) ->
     S ! {self(), smsg_initial_spells, <<0?B, 0?W, 0?W>>},
     ok.
 
+%% @spec send_action_buttons(pid()) -> ok.
 send_action_buttons(S) ->
     S ! {self(), smsg_action_buttons, <<>>},
     ok.
 
+%% @spec send_factions(pid()) -> ok.
 send_factions(S) ->
     S ! {self(), smsg_initialize_factions, <<128?L, 0:5120>>},
     ok.
 
+%% @spec send_timespeed(pid()) -> ok.
 send_timespeed(S) ->
     GameTime = common_helper:game_time(),
     S ! {self(), smsg_login_settimespeed, <<GameTime?L, (0.0166666669777748)?f>>},
     ok.
 
+%% @spec send_status(pid()) -> ok.
 send_status(S) ->
     S ! {self(), smsg_feature_system_status, <<2?B, 0?B>>},
     ok.
 
+%% @spec send_tick_count(pid()) -> ok.
 send_tick_count(S) ->
-    S ! {self(), smsg_time_sync_req, <<(get(tick_count))?L>>}.
+    S ! {self(), smsg_time_sync_req, <<(get(tick_count))?L>>},
+    ok.
 
+%% @spec cmsg_char_enum(pid(), tuple(), binary()) -> tuple().
 cmsg_char_enum(S, St, _) ->
     Data = realm_patterns:smsg_char_enum(St#client_state.account, St#client_state.realm),
     S ! {self(), smsg_char_enum, Data},
     St.
 
+%% @spec cmsg_char_create(pid(), tuple(), binary()) -> tuple().
 cmsg_char_create(S, #client_state{account = Account, realm = Realm} = St, D) ->
     {Name, Rest} = read_cstring(D),
     <<Race?B, Class?B, Gender?B, Skin?B,

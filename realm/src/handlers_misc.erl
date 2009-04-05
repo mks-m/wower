@@ -4,11 +4,13 @@
 -include("realm_records.hrl").
 -include("common.hrl").
 
+%% @spec cmsg_ping(pid(), tuple(), binary()) -> tuple().
 cmsg_ping(S, State, Data) ->
     {Sequence, Latency} = realm_patterns:cmsg_ping(Data),
     S ! {self(), smsg_pong, <<Sequence?L>>},
     State#client_state{latency=Latency}.
-	
+
+%% @spec cmsg_logout_request(pid(), tuple(), binary()) -> tuple().
 cmsg_logout_request(S, State, _Data) ->
 	S ! {self(), smsg_logout_response, <<0?L, 0?B>>},
 	C = self(),
@@ -22,11 +24,13 @@ cmsg_logout_request(S, State, _Data) ->
 		end),
 	State#client_state{logout=LogPid}.
 
+%% @spec cmsg_logout_cancel(pid(), tuple(), binary()) -> tuple().
 cmsg_logout_cancel(S, State, _Data) when pid(State#client_state.logout) ->
 	Logout = State#client_state.logout,
 	Logout ! {self(), exit},
 	S ! {self(), smsg_logout_cancel_ack, <<>>},
 	State#client_state{logout = no};
-	
+
+%% @spec cmsg_logout_cancel(pid(), tuple(), binary()) -> tuple().
 cmsg_logout_cancel(_S, State, _Data) ->
 	State.

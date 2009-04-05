@@ -2,7 +2,6 @@
 %       pool for handling objects in region
 -module(cell).
 -export([start/0, stop/0, world/0, create/0, init/1, init/2]).
--export([test/2, ptest/1, tester/2]).
 
 % size, location and object records
 %% @type vector() = {vector, float(), float(), float()}

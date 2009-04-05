@@ -16,7 +16,7 @@ stop() ->
     realm_server:stop(),
     ok.
 
-restart(Method) ->
+restart() ->
     logon_server:restart(),
     realm_server:restart(),
     ok.

@@ -33,7 +33,7 @@ import(Atom, File, Struct) ->
     {ok, FileInfo} = file:read_file_info(FileName),
     {ok, Dbc} = file:open(FileName, [read, raw, binary]),
     {ok, <<(16#43424457)?I>>} = file:read(Dbc, 4),
-    {ok, <<Records?I, Fields?I, Size?I, StringSize?I>>} = file:read(Dbc, 16),
+    {ok, <<Records?I, _?I, Size?I, StringSize?I>>} = file:read(Dbc, 16),
     {ok, BinData} = file:read(Dbc, FileInfo#file_info.size - StringSize - 20),
     {ok, StringData} = file:read(Dbc, StringSize),
     read_records(Atom, Records, Struct, Size, BinData, StringData).

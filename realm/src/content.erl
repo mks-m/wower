@@ -3,11 +3,20 @@
 
 -include("more_records.hrl").
 
+%% @type race() = human | orc | dwarf | night_elf |
+%%                undead | tauren | gnome | troll |
+%%                blood_elf | draenei.
+%% @type class() = warrior | paladin | hunter | rogue |
+%%                 priest | death_knight | shaman |
+%%                 mage | warlock | druid.
+
+%% @spec char_create_info(race(), class()) -> tuple().
 char_create_info(Race, Class) -> 
     CI1 = race_create_info(Race, #char_create_info{}),
     CI2 = class_create_info(Class, CI1),
     race_class_create_info(Race, Class, CI2).
 
+%% @spec race_class_create_info(race(), class(), tuple()) -> tuple().
 race_class_create_info(human,     warrior, Rec) -> Rec#char_create_info{health = 60, power = 100};
 race_class_create_info(orc,       warrior, Rec) -> Rec#char_create_info{health = 80, power = 100};
 race_class_create_info(dwarf,     warrior, Rec) -> Rec#char_create_info{health = 90, power = 100};
@@ -84,6 +93,7 @@ race_class_create_info(tauren,    druid, Rec) -> Rec#char_create_info{health = 7
 race_class_create_info(_, _, _) ->
     wrong_race_class.
 
+%% @spec race_create_info(race(), tuple()) -> tuple().
 race_create_info(human, Rec) ->
     Rec#char_create_info{faction_template = 1, 
                          display_id       = 49, 
@@ -243,10 +253,9 @@ race_create_info(draenei, Rec) ->
                          intellect        = 21, 
                          spirit           = 22, 
                          stamina          = 19, 
-                         strength         = 21};
-race_create_info(_, _) ->
-    wrong_race.
+                         strength         = 21}.
 
+%% @spec class_create_info(class(), tuple()) -> tuple().
 class_create_info(warrior, Rec) ->
     Rec#char_create_info{agility    = 0.81 * Rec#char_create_info.agility, 
                          intellect  = 0.2  * Rec#char_create_info.intellect,
@@ -327,6 +336,4 @@ class_create_info(druid, Rec) ->
                          strength   = 0.6  * Rec#char_create_info.strength,
                          min_dmg    = 2,
                          max_dmg    = 4,
-                         power_type = mana};
-class_create_info(_, _) ->
-    wrong_class.
+                         power_type = mana}.

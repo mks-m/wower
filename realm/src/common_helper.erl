@@ -6,6 +6,7 @@ do(Q) ->
     {atomic, Val} = mnesia:transaction(F),
     Val.
 
+%% @spec game_time() -> int().
 game_time() ->
     {Y, Mo, Dm} = erlang:date(),
     {H, Mi, _} = erlang:time(),
@@ -18,16 +19,21 @@ game_time() ->
                    ((Y - 2000)*16777216 band 16#1F000000),
     GameTime.
 
+
+%% @spec ms_time() -> int().
 ms_time() ->
     {_, Seconds, Micro} = erlang:now(),
     Seconds * 1000 + Micro div 1000.
 
+%% @spec unix_time() -> int().
 unix_time() ->
     {Mega, Seconds, _} = erlang:now(),
     Mega * 1000000 + Seconds.
 
+%% @spec min(int() | float(), int() | float()) -> int() | float().
 min(X, Y) when X < Y -> X;
 min(_, Y) -> Y.
 
+%% @spec max(int() | float(), int() | float()) -> int() | float().
 max(X, Y) when X > Y -> X;
 max(_, Y) -> Y.

@@ -8,6 +8,7 @@
 -define(I, :32/integer-little).
 -define(F, :32/float-little).
 
+%% @spec import(atom(), string(), tuple()) -> ok.
 import(Atom, File, Struct) ->
     FileName = "dbc/" ++ File ++ ".dbc",
     {ok, FileInfo} = file:read_file_info(FileName),
@@ -18,6 +19,7 @@ import(Atom, File, Struct) ->
     {ok, StringData} = file:read(Dbc, StringSize),
     read_records(Atom, Records, Struct, Size, BinData, StringData).
 
+%% @spec read_records(atom(), int(), tuple(), int(), binary(), binary()) -> ok.
 read_records(_, 0, _, _, _, _) ->
     ok;
 read_records(Atom, RecordsLeft, Struct, Size, BinData, StringData) ->
@@ -27,6 +29,11 @@ read_records(Atom, RecordsLeft, Struct, Size, BinData, StringData) ->
     mnesia:dirty_write(Atom, Record),
     read_records(Atom, RecordsLeft-1, Struct, Size, NewBin, StringData).
 
+%% @type field_atom() = int | float | cstring.
+%% @type field_type() = int() | float() | string().
+%% @type field_desc() = {atom(), field_atom(), int()}.
+
+%% @spec read_record(tuple(), [field_desc()], binary(), binary()) -> tuple().
 read_record(Element, [], _, _) ->
     Element;
 read_record(Element, [{_, Type, Index}|Struct], Bin, String) ->
@@ -34,6 +41,7 @@ read_record(Element, [{_, Type, Index}|Struct], Bin, String) ->
     NewElement = erlang:append_element(Element, Value),
     read_record(NewElement, Struct, Bin, String).
 
+%% @spec read_field(field_atom(), int(), binary(), binary()) -> field_type().
 read_field(int, Index, Bin, _) ->
     Offset = Index * 4,
     <<_:Offset/binary, Value?I, _/binary>> = Bin,
@@ -47,19 +55,17 @@ read_field(cstring, Index, Bin, String) ->
     <<_:Offset/binary, Value?I, _/binary>> = Bin,
     {_, StringStart} = erlang:split_binary(String, Value),
     {StringValue, _} = read_cstring(StringStart),
-    StringValue;
-read_field(_, _, _, _) ->
-    wrong_type.
+    StringValue.
 
+%% @spec file_info(atom()) -> {ok, string(), [field_desc()]}.
 file_info(dbc_chr_race) ->
     {ok, "ChrRaces", 
      [{id, int, 0}, {faction_template_id, int, 2}, 
       {male_model_id, int, 4}, {female_model_id, int, 5}, 
       {team_id, int, 8}, {cinematic_id, int, 13}, 
-      {name, cstring, 14}, {expansion_required, int, 34}]};
-file_info(Atom) ->
-    {no_file, Atom}.
+      {name, cstring, 14}, {expansion_required, int, 34}]}.
 
+%% @spec import(atom()) -> ok.
 import(Atom) ->
     {ok, Name, Struct} = file_info(Atom),
     Fields = lists:map(fun({N, _, _}) -> N end, Struct),
@@ -68,7 +74,8 @@ import(Atom) ->
     ok = import(Atom, Name, Struct),
     ok.
 
+%% @spec import_all() -> ok.
 import_all() ->
     mnesia:start(),
-    import(dbc_chr_race),
+    ok = import(dbc_chr_race),
     ok.

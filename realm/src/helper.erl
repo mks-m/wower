@@ -1,6 +1,5 @@
 -module(helper).
--export([start/0, start/1, stop/0, restart/1, 
-         install/0, compile/0, load/0]).
+-export([start/0, stop/0, restart/0, install/0]).
 
 -include("logon_records.hrl").
 -include("realm_records.hrl").
@@ -12,35 +11,14 @@ start() ->
     realm_server:start(),
     ok.
 
-start(Method) ->
-    ok = ?MODULE:Method(),
-    ok = ?MODULE:start(),
-    ok.
-
 stop() ->
     logon_server:stop(),
     realm_server:stop(),
     ok.
 
 restart(Method) ->
-    logon_server:restart(Method),
-    realm_server:restart(Method),
-    ok.
-
-compile() ->
-    c:c(logon_server),
-    c:c(realm_server),
-    c:c(dbc),
-    logon_server:compile(),
-    realm_server:compile(),
-    ok.
-
-load() ->
-    c:l(logon_server),
-    c:l(realm_server),
-    c:l(dbc),
-    logon_server:load(),
-    realm_server:load(),
+    logon_server:restart(),
+    realm_server:restart(),
     ok.
 
 install() ->

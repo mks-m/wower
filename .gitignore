@@ -4,3 +4,4 @@ ebin/*
 *.beam
 Mnesia*
 nbproject
+*~

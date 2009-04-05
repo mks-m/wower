@@ -8,18 +8,7 @@
 		 ]).
 
 -include("database_records.hrl").
-
--define(IN, /unsigned-little-integer).
--define(NI, /unsigned-big-integer).
--define(b,  /bytes).
--define(f,  /float-little).
--define(QQ, :256).
--define(SH, :160).
--define(DQ, :128).
--define(Q,   :64).
--define(L,   :32).
--define(W,   :16).
--define(B,    :8).
+-include("common.hrl").
 
 %% auth challenge
 %% is sent just after client is connected
@@ -27,9 +16,11 @@
 %% long      opcode
 %% long      random seed
 %% byte      terminator
+%%
+%% @spec smsg_auth_challenge(int()) -> binary().
 smsg_auth_challenge(Seed) ->
     Opcode = realm_opcodes:c(smsg_auth_challenge),
-    <<6?W?NI, Opcode?W?IN, Seed?L?IN>>.
+    <<6:16?O, Opcode?W, Seed?L>>.
 
 %% auth session
 %%
@@ -37,44 +28,55 @@ smsg_auth_challenge(Seed) ->
 %% long      unknown
 %% cstr      acount name
 %% byte N    session key
-cmsg_auth_session(<<Build?L?IN, _Unk?L, Rest/binary>>) ->
+%%
+%% @spec cmsg_auth_session(binary()) -> {int(), string(), binary()} |
+%%                                      {error, bad_cmsg_auth_session}.
+cmsg_auth_session(<<Build?L, _Unk?L, Rest/binary>>) ->
     {Account, Key} = cmsg_auth_session_extract(Rest, ""),
     {Build, Account, Key};
 cmsg_auth_session(_) ->
-    no.
+    {error, bad_cmsg_auth_session}.
 
+%% @spec smsg_auth_response() -> binary().
 smsg_auth_response() ->
     <<12?B, 0?L, 0?B, 0?L, 1?B>>.
 
+%% @spec smsg_char_enum(int(), int()) -> binary().
 smsg_char_enum(AccId, RealmId) ->
     Chars  = realm_helper:chars(AccId, RealmId),
     CharB  = smsg_char_enum_build(Chars),
     <<(length(Chars))?B, CharB/binary>>.
 
-cmsg_ping(<<Sequence?L?IN, Latency?L?IN>>) ->
+%% @spec cmsg_ping(binary()) -> {int(), int()}.
+cmsg_ping(<<Sequence?L, Latency?L>>) ->
     {Sequence, Latency}.
 
-cmsg_player_login(<<CharId?L?IN, 0?L>>) ->
+%% @spec cmsg_player_login(binary()) -> {ok, int()} |
+%%                                      {error, bad_cmsg_player_login}.
+cmsg_player_login(<<CharId?L, 0?L>>) ->
     {ok, CharId};
 cmsg_player_login(_) ->
-    no.
+    {error, bad_cmsg_player_login}.
 
 %% Internal use only
 
+%% @spec cmsg_auth_session_extract(binary()) -> {string(), list()}.
 cmsg_auth_session_extract(<<0?B, Rest/bytes>>, Account) ->
     {Account, binary_to_list(Rest)};
 cmsg_auth_session_extract(<<Letter?B, Rest/binary>>, Account) ->
     cmsg_auth_session_extract(Rest, Account ++ [Letter]).
 
+%% @spec smsg_char_enum_build([tuple()]) -> binary().
 smsg_char_enum_build(Chars) ->
     smsg_char_enum_build(Chars, <<>>).
 
+%% @spec smsg_char_enum_build([tuple()], binary()) -> binary().
 smsg_char_enum_build([], Ready) ->
     Ready;
 smsg_char_enum_build([Char|Chars], Ready) ->
     C = 
     <<Ready/binary,
-      (Char#char.id)?L?IN, 0?L,                    % guid 
+      (Char#char.id)?L, 0?L,                       % guid
       (list_to_binary(Char#char.name))/binary, 0?B,% char name
       (char_helper:race(Char#char.race))?B,        % race
       (char_helper:class(Char#char.class))?B,      % class
@@ -85,13 +87,13 @@ smsg_char_enum_build([Char|Chars], Ready) ->
       (Char#char.hair_color)?B,                    % hair color
       (Char#char.facial_hair)?B,                   % facial hair
       (Char#char.level)?B,                         % level
-      (Char#char.zone_id)?L?IN,                    % zone id
-      (Char#char.map_id)?L?IN,                     % map id
-      (Char#char.position_x)?L?f,                  % x
-      (Char#char.position_y)?L?f,                  % y
-      (Char#char.position_z)?L?f,                  % z
-      (Char#char.guild_id)?L?IN,                   % guild id
-      (Char#char.general_flags)?L?IN,              % flags
+      (Char#char.zone_id)?L,                       % zone id
+      (Char#char.map_id)?L,                        % map id
+      (Char#char.position_x)?f,                    % x
+      (Char#char.position_y)?f,                    % y
+      (Char#char.position_z)?f,                    % z
+      (Char#char.guild_id)?L,                      % guild id
+      (Char#char.general_flags)?L,                 % flags
       0?L,                                         % new in wolk
       1?B,                                         % rest state
       0?L,                                         % pet info
@@ -101,9 +103,11 @@ smsg_char_enum_build([Char|Chars], Ready) ->
       >>,
     smsg_char_enum_build(Chars, C).
 
+%% @spec smsg_char_enum_equip(int()) -> binary().
 smsg_char_enum_equip(CharId) ->
     smsg_char_enum_equip(char_helper:equipment(CharId), <<>>).
 
+%% @spec smsg_char_enum_equip(list()) -> binary().
 smsg_char_enum_equip([], Ready) -> Ready;
 smsg_char_enum_equip([_|Items], Ready) ->
-    smsg_char_enum_equip(Items, <<Ready/binary, 0?L?IN, 0?B, 0?L?IN>>).
+    smsg_char_enum_equip(Items, <<Ready/binary, 0?L, 0?B, 0?L>>).

@@ -5,7 +5,7 @@
 
 -export([info/1, start_forward/3, start_backward/3,
          heartbeat/3, start_turn_right/3, start_turn_left/3,
-         stop_turn/3, stop/3, fall_land/3]).
+         stop_turn/3, stop/3, fall_land/3, set_facing/3]).
 
 -include("realm_records.hrl").
 -include("database_records.hrl").
@@ -37,6 +37,7 @@
 -define(safe_fall,    16#20000000).
 -define(unk3,         16#40000000).
 
+%% @spec info(binary()) -> {error, not_movement_info} | tuple().
 info(<<Flags?L, Unk1?W, Time?L, X?f, Y?f, Z?f, O?f, Rest/binary>>) ->
     MI = #movement_info{flags = Flags, unk1 = Unk1, time = Time,
                         x = X, y = Y, z = Z, o = O},
@@ -85,49 +86,56 @@ info(<<Flags?L, Unk1?W, Time?L, X?f, Y?f, Z?f, O?f, Rest/binary>>) ->
 info(_) ->
     {error, not_movement_info}.
 
+%% @spec start_forward(pid(), tuple(), binary()) -> tuple().
 start_forward(_S, State, Data) ->
-    io:format("forward:~n"),
+    ?DINFO("forward~n"),
     movement(State, Data).
 
+%% @spec start_backward(pid(), tuple(), binary()) -> tuple().
 start_backward(_S, State, Data) ->
-    io:format("backward:~n"),
+    ?DINFO("backward~n"),
     movement(State, Data).
 
+%% @spec heartbeat(pid(), tuple(), binary()) -> tuple().
 heartbeat(_S, State, Data) ->
-    io:format("heartbeat:~n"),
+    ?DINFO("heartbeat~n"),
     movement(State, Data),
     State.
 
+%% @spec start_turn_left(pid(), tuple(), binary()) -> tuple().
 start_turn_left(_S, State, Data) ->
-    io:format("turn left:~n"),
+    ?DINFO("turn left~n"),
     movement(State, Data).
 
+%% @spec start_turn_right(pid(), tuple(), binary()) -> tuple().
 start_turn_right(_S, State, Data) ->
-    io:format("turn right:~n"),
+    ?DINFO("turn right~n"),
     movement(State, Data).
 
+%% @spec stop_turn(pid(), tuple(), binary()) -> tuple().
 stop_turn(_S, State, Data) ->
-    io:format("turn stop:~n"),
+    ?DINFO("turn stop~n"),
     movement(State, Data).
 
+%% @spec stop(pid(), tuple(), binary()) -> tuple().
 stop(_S, State, Data) ->
-    io:format("stop:~n"),
+    ?DINFO("stop~n"),
     movement(State, Data).
 
+%% @spec fall_land(pid(), tuple(), binary()) -> tuple().
+fall_land(_S, State, Data) ->
+    ?DINFO("fall_land~n"),
+    movement(State, Data).
+
+%% @spec set_facing(pid(), tuple(), binary()) -> tuple().
+set_facing(_S, State, Data) ->
+    ?DINFO("set_facing~n"),
+    movement(State, Data).
+
+%% @spec movement(pid(), tuple(), binary()) -> tuple().
 movement(State, Data) ->
     {ok, MI} = info(Data),
-    lists:foldl(
-        fun
-        (E, I) ->
-            V = element(I, MI),
-            if V /= undefined -> 
-                io:format("  ~8s: ~p~n", [E, element(I, MI)]);
-            true ->
-                ok
-            end,
-            I + 1
-        end, 
-        2, record_info(fields, movement_info)),
+    ?DEXEC(debug_mi(MI)),
     Char = (State#client_state.char)#char{position_x  = MI#movement_info.x,
                                           position_y  = MI#movement_info.y,
                                           position_z  = MI#movement_info.z,
@@ -137,5 +145,18 @@ movement(State, Data) ->
                                                    MI#movement_info.z},
     State#client_state{char = Char}.
 
-fall_land(_S, State, _Data) ->
-    State.
+%% @spec debug_mi(tuple()) -> ok.
+debug_mi(MI) ->
+    lists:foldl(
+        fun
+        (E, I) ->
+            V = element(I, MI),
+            if V /= undefined ->
+                io:format("  ~8s: ~p~n", [E, element(I, MI)]);
+            true ->
+                ok
+            end,
+            I + 1
+        end,
+        2, record_info(fields, movement_info)),
+    ok.

@@ -1,6 +1,7 @@
 -module(realm_opcodes).
 -compile(export_all).
 
+%% @spec e(atom()) -> int().
 e(response_success) -> 0;
 e(response_failure) -> 1;
 e(response_cancelled) -> 2;
@@ -96,6 +97,7 @@ e(char_name_russian_consecutive_silent_characters) -> 91;
 e(char_name_russian_silent_character_at_beginning_or_end) -> 92;
 e(char_name_declension_doesnt_match_base_name) -> 93.
 
+%% @spec h(int()) -> atom() | {atom(), atom()}.
 h(0) -> msg_null_action;
 h(1) -> cmsg_bootme;
 h(2) -> cmsg_dblookup;
@@ -1121,7 +1123,7 @@ h(16#3FD) -> msg_guild_bank_money_withdrawn;
 h(16#3FE) -> msg_guild_event_log_query;
 h(16#3FF) -> cmsg_maelstrom_rename_guild;
 h(16#400) -> cmsg_get_mirrorimage_data;
-h(1025) -> smsg_mirrorimage_data;
+h(16#401) -> smsg_mirrorimage_data;
 h(16#402) -> smsg_force_display_update;
 h(16#403) -> smsg_spell_chance_resist_pushback;
 h(16#404) -> cmsg_ignore_diminishing_returns_cheat;
@@ -1158,6 +1160,7 @@ h(16#422) -> smsg_spline_move_unset_flying;
 h(16#423) -> smsg_summon_cancel;
 h(_)      -> undef_opcode.
 
+%% @spec c(atom()) -> int().
 c(msg_null_action) -> 0;
 c(cmsg_bootme) -> 1;
 c(cmsg_dblookup) -> 2;

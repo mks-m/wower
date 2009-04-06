@@ -155,6 +155,33 @@ update_flag(vehicle)      -> 16#0080;
 update_flag(unk1)         -> 16#0100;
 update_flag(unk2)         -> 16#0200.
 
+%% @spec movement_flag(atom()) -> int().
+movement_flag(forward)      -> 16#00000001;
+movement_flag(backward)     -> 16#00000002;
+movement_flag(strafe_left)  -> 16#00000004;
+movement_flag(strafe_right) -> 16#00000008;
+movement_flag(left)         -> 16#00000010;
+movement_flag(right)        -> 16#00000020;
+movement_flag(pitch_up)     -> 16#00000040;
+movement_flag(pitch_down)   -> 16#00000080;
+movement_flag(walk_mode)    -> 16#00000100;
+movement_flag(on_transport) -> 16#00000200;
+movement_flag(levitating)   -> 16#00000400;
+movement_flag(fly_unk1)     -> 16#00000800;
+movement_flag(jumping)      -> 16#00001000;
+movement_flag(unk4)         -> 16#00002000;
+movement_flag(falling)      -> 16#00004000;
+movement_flag(swimming)     -> 16#00200000;
+movement_flag(fly_up)       -> 16#00400000;
+movement_flag(can_fly)      -> 16#00800000;
+movement_flag(flying)       -> 16#01000000;
+movement_flag(flying2)      -> 16#02000000;
+movement_flag(spline)       -> 16#04000000;
+movement_flag(spline2)      -> 16#08000000;
+movement_flag(waterwalking) -> 16#10000000;
+movement_flag(safe_fall)    -> 16#20000000;
+movement_flag(unk3)         -> 16#40000000.
+
 %% @spec typeid(atom()) -> int().
 typeid(object)         -> 0;
 typeid(item)           -> 1;
@@ -177,6 +204,16 @@ update_flags([], Flags) ->
     Flags;
 update_flags([Flag|Rest], Flags) ->
     update_flags(Rest, Flags bor update_flag(Flag)).
+
+%% movement_flags(list()) -> int().
+movement_flags(List) ->
+    movement_flags(List, 0).
+
+%% movement_flags(list(), int()) -> int().
+movement_flags([], Flags) ->
+    Flags;
+movement_flags([Flag|Rest], Flags) ->
+    movement_flags(Rest, Flags bor movement_flag(Flag)).
 
 %% guid(int(), int()) -> int().
 guid(HG, LG) ->

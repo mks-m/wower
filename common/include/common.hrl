@@ -12,7 +12,14 @@
 % size, location and object records
 -record(vector, {x, y, z}).
 
--define(DEBUG, false).
--define(DINFO(S), if ?DEBUG -> io:format(S); true -> ok end).
--define(DDINFO(S, P), if ?DEBUG -> io:format(S, P); true -> ok end).
--define(DEXEC(V), if ?DEBUG -> V; true -> ok end).
+-define(DEBUG, true).
+
+-ifdef(DEBUG).
+-define(DINFO(S), io:format(S)).
+-define(DDINFO(S, P), io:format(S, P) end).
+-define(DEXEC(V), V).
+-else.
+-define(DINFO(S), ok).
+-define(DDINFO(S, P), ok).
+-define(DEXEC(V), ok).
+-endif.

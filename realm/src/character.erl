@@ -55,13 +55,14 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         M = update_helper:message(P),
         S ! M,
         put(tick_count, 0),
-        MapPid ! {bco, self(), #vector{x=Char#char.position_x,
-                                        y=Char#char.position_y,
-                                        z=Char#char.position_z},
-                        #vector{x=30,y=30,z=30}, {object_update, B}},
         MapPid ! {add, self(), Char#char.position_x,
                                Char#char.position_y,
                                Char#char.position_z},
+        MapPid ! {bco, self(), #vector{x=Char#char.position_x,
+                                       y=Char#char.position_y,
+                                       z=Char#char.position_z},
+                               30,
+                               {object_update, B}},
         in_world(State#client_state{current_map=MapPid, char=Char});
 
     {R, {M, F}, Data} ->

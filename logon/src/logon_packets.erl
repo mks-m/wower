@@ -16,11 +16,11 @@ authenticate(Opcode, Data, State) ->
     case logon_patterns:auth_request(Data) of
     {ok, Build, Account} when Build > 9182 ->
         case account_helper:find_by_name(Account) of
-        [AccountRecord] -> 
+        {ok, AccountRecord} ->
             H = srp6:challenge(AccountRecord),
             NewState = State#logon_state{authenticated=no, account=AccountRecord, hash=H},
             {send, logon_patterns:auth_reply(H), NewState};
-        _ ->
+        {error, not_found} ->
             {send, logon_patterns:error(Opcode, account_missing), State}
         end;
     {ok, _Build, _Account} ->

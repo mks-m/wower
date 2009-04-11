@@ -95,7 +95,7 @@ auth_session(Rest) ->
     K      = realm_crypto:encryption_key(A),
     EK     = #crypt_state{i=0, j=0, key=K},
     DK     = #crypt_state{i=0, j=0, key=K},
-    [Account] = account_helper:find_by_name(A),
+    {ok, Account} = account_helper:find_by_name(A),
     {smsg_auth_response, Data, Account#account.id, EK, DK}.
 
 explain_exit() ->

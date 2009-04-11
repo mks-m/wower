@@ -8,6 +8,7 @@
 -include("dbc_records.hrl").
 -include("more_records.hrl").
 -include("common.hrl").
+-include("update.hrl").
 
 -import(packet_helper, [make_cstring/1,
                         read_cstring/1]).

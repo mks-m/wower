@@ -2,6 +2,7 @@
 -export([block/2, packet/1, message/1]).
 
 -include("common.hrl").
+-include("update.hrl").
 -include("database_records.hrl").
 
 %% A9 packet description
@@ -24,19 +25,6 @@
 %%     byte   M         number of long's after this byte
 %%     long      M      bitmask in which i'th bit means if i'th 
 %%                      field from object's blob is present
-
--record(update_block, {update_type,
-                       object_guid,
-                       object_type,
-                       update_flags,
-                       movement_flags,
-                       unknown = 0,
-                       game_time,
-                       position,
-                       fall_time,
-                       speeds,
-                       mask,
-                       fields}).
 
 %% @spec block(atom(), tuple()) -> tuple().
 block(Type, Char) ->

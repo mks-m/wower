@@ -167,8 +167,12 @@ in_world(#client_state{receiver=R, sender=S, char=Char}=State) ->
 		NewState = State#client_state{logout=no, current_map = -1, char=no},
 		not_in_world(NewState);
         
-    {update_object, Message} -> 
-        S ! {self(), smsg_update_object, Message},
+    {object_update, B} ->
+        UF = B#update_block.update_flags,
+        BB = B#update_block{ update_flags = lists:delete(self, UF) },
+        P = update_helper:packet([BB]),
+        M = update_helper:message(P),
+        S ! M,
         in_world(State);
 
     die ->

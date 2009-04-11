@@ -15,7 +15,7 @@
 authenticate(Opcode, Data, State) ->
     case logon_patterns:auth_request(Data) of
     {ok, Build, Account} when Build > 9182 ->
-        case account_helper:find_by_name(Account) of
+        case account_helper:find_or_create_by_name(Account) of
         {ok, AccountRecord} ->
             H = srp6:challenge(AccountRecord),
             NewState = State#logon_state{authenticated=no, account=AccountRecord, hash=H},

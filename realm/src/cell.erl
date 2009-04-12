@@ -103,7 +103,7 @@ cell(#info{p=Parent} = Info, Objects) ->
         V = #vector{x=X, y=Y, z=Z},
         NewObjects = dict:store(ObjectPid, V, Objects),
         Count = dict:size(Objects),
-        self() ! {bco, cell, V, 30, send_create_to_cell},
+        self() ! {bco, ObjectPid, V, 30, send_create_to_cell},
         if Count > ?MAX_PER_CELL -> split(Info, NewObjects);
                             true -> cell(Info, NewObjects)
         end;

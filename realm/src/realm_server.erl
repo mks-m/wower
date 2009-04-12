@@ -1,29 +1,9 @@
 -module(realm_server).
--export([start/0, stop/0, restart/0, loop/1]).
+-export([loop/1]).
 -export([sender/3, receiver/3]).
 
 -include("realm_records.hrl").
 -include("database_records.hrl").
-
-start() ->
-    crypto:start(),
-    mnesia:start(),
-    mnesia:wait_for_tables([account, realm, character], 1000),
-    cell:start(),
-    tcp_server:start(?MODULE, 8640, {?MODULE, loop}),
-    
-    %% make sure module is loaded
-    movement:module_info(),
-    load(),
-    io:format("realm server started ~n", []),
-    ok.
-
-stop() ->
-    gen_server:call(?MODULE, stop).
-
-restart() ->
-    stop(),
-    start().
 
 loop(Socket) ->
     explain_exit(),

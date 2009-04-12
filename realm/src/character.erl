@@ -150,14 +150,11 @@ in_world(#client_state{receiver=R, sender=S, char=Char}=State) ->
         in_world(State);
 
     {R, {M, F}, Data} ->
-        C1 = erlang:module_loaded(M),
-        C2 = erlang:function_exported(M, F, 3),
-        if C1 and C2 ->
-            NewState = M:F(S, State, Data),
-            in_world(NewState);
-        true ->
-            io:format("undefined: ~p:~p(~p)~n", [M, F, Data]),
-            in_world(State)
+        case M:F(S, State, Data) of
+        {NewLoop, NewState} ->
+            ?MODULE:NewLoop(NewState);
+        NewState ->
+            in_world(NewState)
         end;
     
     {R, Handler, Data} ->

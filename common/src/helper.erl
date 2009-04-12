@@ -1,25 +1,10 @@
 -module(helper).
--export([start/0, stop/0, restart/0, install/0]).
+-export([install/0]).
 
 -include("logon_records.hrl").
 -include("realm_records.hrl").
 -include("database_records.hrl").
 -include("more_records.hrl").
-
-start() ->
-    logon_server:start(),
-    realm_server:start(),
-    ok.
-
-stop() ->
-    logon_server:stop(),
-    realm_server:stop(),
-    ok.
-
-restart() ->
-    logon_server:restart(),
-    realm_server:restart(),
-    ok.
 
 install() ->
     mnesia:delete_schema([node()]),

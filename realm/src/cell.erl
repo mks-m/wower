@@ -230,7 +230,6 @@ meta(#info{p=Parent} = Info) ->
 
 %% @spec split(info(), dictionary()) -> ok.
 split(#info{s=S} = Info, Objects) when S/2 >= ?MIN_CELL_SIZE ->
-    io:format("going to split~n"),
     Navigation = {create(1, Info, Objects),
                   create(2, Info, Objects),
                   create(3, Info, Objects),

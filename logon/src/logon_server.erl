@@ -1,27 +1,9 @@
 -module(logon_server).
--export([start/0, stop/0, restart/0, loop/1]).
-
+-export([loop/1]).
 -export([receiver/2, sender/2]).
 
 -include("logon_records.hrl").
 -include("database_records.hrl").
-
-start() ->
-    load(),
-    crypto:start(),
-    mnesia:start(),
-    ets:new(connected_clients, [named_table, set, public]),
-    mnesia:wait_for_tables([account, realm], 1000),
-    tcp_server:start(?MODULE, 3724, {?MODULE, loop}),
-    io:format("logon server started ~n", []),
-    ok.
-
-stop() ->
-    gen_server:call(?MODULE, stop).
-
-restart() ->
-    stop(),
-    start().
 
 loop(Socket) ->
     R = spawn_link(?MODULE, receiver, [Socket, self()]),
@@ -65,14 +47,3 @@ sender(Socket, Client) ->
             io:format("Weird message to sender: ~p~n", [Any]),
             sender(Socket, Client)
     end.
-
-load() ->
-    c:l(account_helper),
-    c:l(char_helper),
-    c:l(common_helper),
-    c:l(logon_opcodes),
-    c:l(logon_packets),
-    c:l(logon_patterns),
-    c:l(packet_helper),
-    c:l(srp6),
-    c:l(tcp_server).

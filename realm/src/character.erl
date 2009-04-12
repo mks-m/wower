@@ -164,7 +164,7 @@ in_world(#client_state{receiver=R, sender=S, char=Char}=State) ->
     logout ->
         NewState = State#client_state{logout=no, current_map = -1, char=no},
         not_in_world(NewState);
-        
+
     {object_update, B} ->
         io:format("~p got update block: ~p~n", [self(), B]),
         UF = B#update_block.update_flags,
@@ -172,6 +172,11 @@ in_world(#client_state{receiver=R, sender=S, char=Char}=State) ->
         P = update_helper:packet([BB]),
         M = update_helper:message(P),
         S ! M,
+        in_world(State);
+
+    {send, Opcode, Message} ->
+        io:format("~p received forwarded packet: ~p~n", [self(), Opcode]),
+        S ! {self(), Opcode, Message},
         in_world(State);
 
     die ->

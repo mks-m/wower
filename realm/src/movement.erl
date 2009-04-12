@@ -43,16 +43,16 @@ info(<<Flags?L, Unk1?W, Time?L, X?f, Y?f, Z?f, O?f, Rest/binary>>) ->
                         x = X, y = Y, z = Z, o = O},
     %% io:format("mi1: ~p~n", [MI]),
     if (Flags band ?on_transport) > 0 ->
-        <<T_guid?Q, Tx?f, Ty?f, Tz?f, 
+        <<T_guid?Q, Tx?f, Ty?f, Tz?f,
           To?f, T_time?L, T_seat?B, Rest2/binary>> = Rest,
-        MI2 = MI#movement_info{t_guid = T_guid, tx = Tx, ty = Ty, tz = Tz, 
+        MI2 = MI#movement_info{t_guid = T_guid, tx = Tx, ty = Ty, tz = Tz,
                                to = To, t_time = T_time, t_seat = T_seat};
     true ->
         MI2 = MI, Rest2 = Rest
     end,
     %% io:format("mi2: ~p~n", [MI2]),
 
-    if ((Flags band (?swimming bor ?flying2)) > 0) or 
+    if ((Flags band (?swimming bor ?flying2)) > 0) or
        ((Unk1 band 16#20) > 0) ->
         <<S_pitch?f, Rest3/binary>> = Rest2,
         MI3 = MI2#movement_info{s_pitch = S_pitch};
@@ -67,7 +67,7 @@ info(<<Flags?L, Unk1?W, Time?L, X?f, Y?f, Z?f, O?f, Rest/binary>>) ->
 
     if (Flags band ?jumping) > 0 ->
         <<Unk2?f, J_sin?f, J_cos?f, J_speed?f, Rest5/binary>> = Rest4,
-        MI5 = MI4#movement_info{unk2 = Unk2, j_sin = J_sin, 
+        MI5 = MI4#movement_info{unk2 = Unk2, j_sin = J_sin,
                                j_cos = J_cos, j_speed = J_speed};
     true ->
         MI5 = MI4, Rest5 = Rest4
@@ -86,54 +86,97 @@ info(<<Flags?L, Unk1?W, Time?L, X?f, Y?f, Z?f, O?f, Rest/binary>>) ->
 info(_) ->
     {error, not_movement_info}.
 
+%% @spec pack(binary(), tuple()) -> {error, not_movement_info} | binary().
+pack(Guid, MI) ->
+    #movement_info{flags = Flags, unk1 = Unk1, time = Time,
+                   x = X, y = Y, z = Z, o = O} = MI,
+    B1 = <<Guid/binary, Flags?L, Unk1?W, Time?L, X?f, Y?f, Z?f, O?f>>,
+    
+    if (Flags band ?on_transport) > 0 ->
+        #movement_info{t_guid = T_guid, tx = Tx, ty = Ty, tz = Tz,
+                       to = To, t_time = T_time, t_seat = T_seat} = MI,
+        B2 = <<B1/binary, T_guid?Q, Tx?f, Ty?f, Tz?f,
+               To?f, T_time?L, T_seat?B>>;
+    true ->
+        B2 = B1
+    end,
+
+    if ((Flags band (?swimming bor ?flying2)) > 0) or
+       ((Unk1 band 16#20) > 0) ->
+        S_pitch = MI#movement_info.s_pitch,
+        B3 = <<B2/binary, S_pitch?f>>;
+    true ->
+        B3 = B2
+    end,
+
+    Fall_time = MI#movement_info.fall_time,
+    B4 = <<B3/binary, Fall_time?L>>,
+
+    if (Flags band ?jumping) > 0 ->
+        #movement_info{unk2 = Unk2, j_sin = J_sin,
+                       j_cos = J_cos, j_speed = J_speed} = MI,
+        B5 = <<B4/binary, Unk2?f, J_sin?f, J_cos?f, J_speed?f>>;
+    true ->
+        B5 = B4
+    end,
+
+    if (Flags band ?spline) > 0 ->
+        Unk3 = MI#movement_info.unk3,
+        B6 = <<B5/binary, Unk3?f>>;
+    true ->
+        B6 = B5
+    end,
+
+    B6.
+
 %% @spec start_forward(pid(), tuple(), binary()) -> tuple().
 start_forward(_S, State, Data) ->
     ?DINFO("forward~n"),
-    movement(State, Data).
+    movement(State, msg_move_start_forward, Data).
 
 %% @spec start_backward(pid(), tuple(), binary()) -> tuple().
 start_backward(_S, State, Data) ->
     ?DINFO("backward~n"),
-    movement(State, Data).
+    movement(State, msg_move_start_backward, Data).
 
 %% @spec heartbeat(pid(), tuple(), binary()) -> tuple().
 heartbeat(_S, State, Data) ->
     ?DINFO("heartbeat~n"),
-    movement(State, Data),
+    movement(State, msg_move_heartbeat, Data),
     State.
 
 %% @spec start_turn_left(pid(), tuple(), binary()) -> tuple().
 start_turn_left(_S, State, Data) ->
     ?DINFO("turn left~n"),
-    movement(State, Data).
+    movement(State, msg_move_start_turn_left, Data).
 
 %% @spec start_turn_right(pid(), tuple(), binary()) -> tuple().
 start_turn_right(_S, State, Data) ->
     ?DINFO("turn right~n"),
-    movement(State, Data).
+    movement(State, msg_move_start_turn_right, Data).
 
 %% @spec stop_turn(pid(), tuple(), binary()) -> tuple().
 stop_turn(_S, State, Data) ->
     ?DINFO("turn stop~n"),
-    movement(State, Data).
+    movement(State, msg_move_stop_turn, Data).
 
 %% @spec stop(pid(), tuple(), binary()) -> tuple().
 stop(_S, State, Data) ->
     ?DINFO("stop~n"),
-    movement(State, Data).
+    movement(State, msg_move_stop, Data).
 
 %% @spec fall_land(pid(), tuple(), binary()) -> tuple().
 fall_land(_S, State, Data) ->
     ?DINFO("fall_land~n"),
-    movement(State, Data).
+    movement(State, msg_move_fall_land, Data).
 
 %% @spec set_facing(pid(), tuple(), binary()) -> tuple().
 set_facing(_S, State, Data) ->
     ?DINFO("set_facing~n"),
-    movement(State, Data).
+    movement(State, msg_move_set_facing, Data).
 
 %% @spec movement(pid(), tuple(), binary()) -> tuple().
-movement(State, Data) ->
+movement(State, Opcode, Data) ->
     {ok, MI} = info(Data),
     ?DEXEC(debug_mi(MI)),
     Char = (State#client_state.char)#char{position_x  = MI#movement_info.x,
@@ -143,8 +186,16 @@ movement(State, Data) ->
     State#client_state.current_map ! {set, self(), MI#movement_info.x,
                                                    MI#movement_info.y,
                                                    MI#movement_info.z},
+    GameTime = common_helper:game_time(),
+    Packet   = pack(update_helper:guid(Char#char.id, 0), MI#movement_info{time = GameTime}),
+    State#client_state.current_map ! {bco, self(), #vector{x=Char#char.position_x,
+                                                           y=Char#char.position_y,
+                                                           z=Char#char.position_z},
+                                                   30,
+                                                   {send, Opcode, Packet}},
     State#client_state{char = Char}.
 
+-ifdef(DEBUG).
 %% @spec debug_mi(tuple()) -> ok.
 debug_mi(MI) ->
     lists:foldl(
@@ -160,3 +211,4 @@ debug_mi(MI) ->
         end,
         2, record_info(fields, movement_info)),
     ok.
+-endif.

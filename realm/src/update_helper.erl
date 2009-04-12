@@ -1,5 +1,5 @@
 -module(update_helper).
--export([block/2, packet/1, message/1]).
+-export([block/2, packet/1, message/1, guid/2]).
 
 -include("common.hrl").
 -include("update.hrl").

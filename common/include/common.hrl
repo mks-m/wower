@@ -12,7 +12,7 @@
 % size, location and object records
 -record(vector, {x, y, z}).
 
--define(DEBUG, true).
+%-define(DEBUG, true).
 
 -ifdef(DEBUG).
 -define(DINFO(S), io:format(S)).

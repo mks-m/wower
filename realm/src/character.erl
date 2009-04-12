@@ -41,7 +41,7 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         {ok, CharId} = realm_patterns:cmsg_player_login(D),
         Char = char_helper:find(CharId),
         ok = set_dungeon_difficulty(S, -1),
-        MapPid = verify_world(S, Char),
+        CellPid = verify_world(S, Char),
         ok = send_account_data(S),
         ok = set_rest_start(S),
         ok = set_tutorial_flags(S),
@@ -55,15 +55,16 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         M = update_helper:message(P),
         S ! M,
         put(tick_count, 0),
-        MapPid ! {add, self(), Char#char.position_x,
-                               Char#char.position_y,
-                               Char#char.position_z},
-        MapPid ! {bco, self(), #vector{x=Char#char.position_x,
-                                       y=Char#char.position_y,
-                                       z=Char#char.position_z},
-                               30,
-                               {object_update, B}},
-        in_world(State#client_state{current_map=MapPid, char=Char});
+        CellPid ! {add, self(), Char#char.position_x,
+                                Char#char.position_y,
+                                Char#char.position_z},
+        CellPid ! {bco, self(), #vector{x=Char#char.position_x,
+                                        y=Char#char.position_y,
+                                        z=Char#char.position_z},
+                                30,
+                                {object_update, B}},
+        io:format("~p sent update block: ~p~n", [self(), B]),
+        in_world(State#client_state{current_map=CellPid, char=Char});
 
     {R, {M, F}, Data} ->
         C1 = erlang:module_loaded(M),
@@ -164,10 +165,11 @@ in_world(#client_state{receiver=R, sender=S, char=Char}=State) ->
         in_world(State);
 
     logout ->
-		NewState = State#client_state{logout=no, current_map = -1, char=no},
-		not_in_world(NewState);
+        NewState = State#client_state{logout=no, current_map = -1, char=no},
+        not_in_world(NewState);
         
     {object_update, B} ->
+        io:format("~p got update block: ~p~n", [self(), B]),
         UF = B#update_block.update_flags,
         BB = B#update_block{ update_flags = lists:delete(self, UF) },
         P = update_helper:packet([BB]),
@@ -197,10 +199,15 @@ verify_world(S, Char) ->
           <<(Char#char.map_id)?f, (Char#char.position_x)?f, 
             (Char#char.position_y)?f, (Char#char.position_z)?f,
             (Char#char.orientation)?f>> },
-    world ! {self(), find, Char#char.map_id},
+    world ! {self(), find, Char#char.map_id,
+                           #vector{x=Char#char.position_x,
+                                   y=Char#char.position_y,
+                                   z=Char#char.position_z}},
+    io:format("Waiting for cell pid~n"),
     receive 
-    {world, found, MapPid} ->
-        MapPid
+    {world, found, CellPid} ->
+        io:format("Received cell pid: ~p~n", [CellPid]),
+        CellPid
     end.
 
 %% @spec send_account_data(pid()) -> ok.

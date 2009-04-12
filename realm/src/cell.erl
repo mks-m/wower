@@ -35,9 +35,9 @@ world() ->
 %% @spec world(dictionary()) -> ok.
 world(Maps) ->
     receive
-    {From, find, MapId} ->
+    {From, find, MapId, Location} ->
         {ok, MapPid} = dict:find(MapId, Maps),
-        From ! {world, found, MapPid},
+        MapPid ! {world, From, locate, Location},
         world(Maps);
     stop ->
         dict:map(fun(_,V) -> V ! {die, undefined} end, Maps),
@@ -113,7 +113,12 @@ cell(#info{p=Parent} = Info, Objects) ->
         cell(Info, Objects);
     {bcm, Parent, ObjectLocation, Range, Message} ->
         InRange = bc_inrange(all, ObjectLocation, Range, Objects),
+        io:format("INR: ~p~n", [InRange]),
         dict:fold(fun(K, _, ok) -> K ! Message, ok end, ok, InRange),
+        cell(Info, Objects);
+
+    {world, From, locate, _} ->
+        From ! {world, found, self()},
         cell(Info, Objects);
     
     {status, Pid, Offset} ->
@@ -162,13 +167,19 @@ meta(#info{p=Parent} = Info) ->
         Index = index(#vector{x=X, y=Y, z=Z}, Info#info.l),
         erlang:element(Index, Info#info.n) ! {set, ObjectPid, X, Y, Z},
         meta(Info);
-
+    
     {bcm, Parent, ObjectLocation, Range, Message} ->
         bc_down(Info, ObjectLocation, Range, Message),
         meta(Info);
     {bcc, From, ObjectLocation, Range, Message} ->
         bc_up(Info, ObjectLocation, Range, Message),
         bc_down(Info, From, ObjectLocation, Range, Message),
+        meta(Info);
+
+    {world, From, locate, Location} ->
+        Index = index(Info#info.l, Location),
+        Cell  = element(Index, Info#info.n),
+        Cell ! {world, From, locate, Location},
         meta(Info);
     
     status ->
@@ -298,10 +309,11 @@ index(X, Y, Z) ->
 
 %% @spec bc_up(info(), vector(), float(), any()) -> ok.
 bc_up(Info, #vector{x=OX, y=OY, z=OZ} = O, R, Message) ->
-    #info{l=#vector{x=LX, y=LY, z=LZ}, s=S} = Info,
-    if LX-S <  OX-R orelse LY-S <  OY-R orelse LZ-S <  OZ-R orelse
-       LX+S >= OX+R orelse LY+S >= OY+R orelse LZ+S >= OZ+R ->
-        Info#info.p ! {bcc, self(), O, R, Message},
+    #info{l=#vector{x=LX, y=LY, z=LZ}, s=S, p=Pid} = Info,
+    if is_pid(Pid) andalso
+       (LX-S <  OX-R orelse LY-S <  OY-R orelse LZ-S <  OZ-R orelse
+        LX+S >= OX+R orelse LY+S >= OY+R orelse LZ+S >= OZ+R) ->
+        Pid ! {bcc, self(), O, R, Message},
         ok;
     true ->
         ok

@@ -61,7 +61,6 @@ receiver(S, C, K) ->
         {DH, NK} = realm_crypto:decrypt(H, K),
         <<Size:16/integer-big, Opcode:32/integer-little>> = DH,
         Handler = realm_opcodes:h(Opcode),
-        io:format("handling: ~p (~p), size: ~p~n", [Handler, Opcode, Size]),
         dispatch(S, C, Size-4, Handler),
         receiver(S, C, NK);
     {error, closed} -> exit(socket_closed)
@@ -72,22 +71,6 @@ dispatch(_, C, 0, H) ->
 dispatch(S, C, Size, H) ->
     {ok, D} = gen_tcp:recv(S, Size),
     C ! {self(), H, D}.
-
-load() ->
-    c:l(account_helper),
-    c:l(char_helper),
-    c:l(character),
-	c:l(chat_handler),
-    c:l(common_helper),
-	c:l(handlers_misc),
-    c:l(packet_helper),
-    c:l(realm_crypto),
-    c:l(realm_helper),
-    c:l(realm_opcodes),
-    c:l(realm_patterns),
-    c:l(srp6),
-    c:l(tcp_server),
-    c:l(update_fields).
 
 auth_session(Rest) ->
     {_, A, _}      = realm_patterns:cmsg_auth_session(Rest),

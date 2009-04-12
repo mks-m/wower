@@ -179,6 +179,16 @@ in_world(#client_state{receiver=R, sender=S, char=Char}=State) ->
         S ! {self(), Opcode, Message},
         in_world(State);
 
+    send_create_to_cell ->
+        B = update_helper:block(create_object2, Char),
+        CellPid = State#client_state.current_map,
+        CellPid ! {bco, self(), #vector{x=Char#char.position_x,
+                                        y=Char#char.position_y,
+                                        z=Char#char.position_z},
+                                30,
+                                {object_update, B}},
+        in_world(State);
+
     die ->
         ok;
 

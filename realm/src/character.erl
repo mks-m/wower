@@ -50,7 +50,6 @@ not_in_world(#client_state{receiver=R, sender=S}=State) ->
         ok = send_factions(S),
         ok = send_timespeed(S),
         ok = send_status(S),
-        %ok = update_helper:send_self(S, Char),
         B = update_helper:block(create_object2, Char),
         P = update_helper:packet([B]),
         M = update_helper:message(P),

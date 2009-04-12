@@ -67,7 +67,7 @@ create(Bitmap, #info{s=S, l=#vector{x=LX, y=LY, z=LZ}}, O) ->
 %% @spec init(info()) -> ok.
 init(#info{} = Info) ->
     Objects = dict:new(),
-    cell(Info, Objects).
+    split(Info, Objects).
 
 % initializes child cell with predefined objects count
 %% @spec start(info(), dictionary()) -> ok.
@@ -116,13 +116,6 @@ cell(#info{p=Parent} = Info, Objects) ->
         dict:fold(fun(K, _, ok) -> K ! Message, ok end, ok, InRange),
         cell(Info, Objects);
     
-    status ->
-        io:format("- cell @ (~.2f, ~.2f, ~.2f), size: ~p, holding: ~p~n", [(Info#info.l)#vector.x, 
-                                                                           (Info#info.l)#vector.y, 
-                                                                           (Info#info.l)#vector.z,
-                                                                           Info#info.s, dict:size(Objects)]),
-        cell(Info, Objects);
-
     {status, Pid, Offset} ->
         io:format(Offset ++ "- cell @ (~.2f, ~.2f, ~.2f), size: ~p, holding: ~p~n", [(Info#info.l)#vector.x, 
                                                                                      (Info#info.l)#vector.y, 
@@ -131,10 +124,8 @@ cell(#info{p=Parent} = Info, Objects) ->
         Pid ! {status, self(), ok},
         cell(Info, Objects);
     
-    die ->
-        ok;
-    {die, Pid} ->
-        Pid ! {status, self(), ok},
+    {die, Parent} ->
+        Parent ! {status, self(), ok},
         ok;
     
     _ ->

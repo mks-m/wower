@@ -16,21 +16,18 @@ Does not support patching.
 
 Accepts connections. Packet encryption/decryption implemented.
 Character list implemented. Login into world implemented.
-You can now run around with default character with some strange
-absolutely random display id.
 
 Creating character works. Importing DBC files works. Cell system 
-works.
+works. 
+
+You can now see other characters in game.
 
 === Get started ===
 
 1. Install Erlang
 2. Get sources
-3. Run `erl -make`
-4. Go to ebin folder
-5. Run `erl` and type next commands:
-   > helper:install(). // only if you want to recreate DB
-   > helper:start().   // this will start realm and logon servers
+3. Run `make`
+4. Run `./start.sh`
 
 You must have correct(>= 3.0.8) DBC files in ebin/dbc folder to
 start server properly.

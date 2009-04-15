@@ -31,42 +31,68 @@ player_bytes_2(#char{facial_hair = F}) ->
 
 %% @type gender() = male | female | none.
 %% @spec gender(gender()) -> int().
-%% @spec gender(int()) -> gender().
-gender(male)   -> 0; gender(0) -> male;
-gender(female) -> 1; gender(1) -> female;
-gender(none)   -> 2; gender(2) -> none.
+gender(male)   -> 0;
+gender(female) -> 1;
+gender(none)   -> 2.
+
+%% @spec to_gender(int()) -> gender().
+to_gender(0) -> male;
+to_gender(1) -> female;
+to_gender(2) -> none.
 
 %% @type race() = human | orc | dwarf | night_elf | 
 %%                undead | tauren | gnome | troll |
 %%                blood_elf | draenei.
 %% @spec race(race()) -> int().
-%% @spec race(int()) -> race().
-race(human)     -> 1;  race(1)  -> human;
-race(orc)       -> 2;  race(2)  -> orc;
-race(dwarf)     -> 3;  race(3)  -> dwarf;
-race(night_elf) -> 4;  race(4)  -> night_elf;
-race(undead)    -> 5;  race(5)  -> undead;
-race(tauren)    -> 6;  race(6)  -> tauren;
-race(gnome)     -> 7;  race(7)  -> gnome;
-race(troll)     -> 8;  race(8)  -> troll;
-race(blood_elf) -> 10; race(10) -> blood_elf;
-race(draenei)   -> 11; race(11) -> draenei.
+race(human)     -> 1;
+race(orc)       -> 2;
+race(dwarf)     -> 3;
+race(night_elf) -> 4;
+race(undead)    -> 5;
+race(tauren)    -> 6;
+race(gnome)     -> 7;
+race(troll)     -> 8;
+race(blood_elf) -> 10;
+race(draenei)   -> 11.
+
+%% @spec to_race(int()) -> race().
+to_race(1)  -> human;
+to_race(2)  -> orc;
+to_race(3)  -> dwarf;
+to_race(4)  -> night_elf;
+to_race(5)  -> undead;
+to_race(6)  -> tauren;
+to_race(7)  -> gnome;
+to_race(8)  -> troll;
+to_race(10) -> blood_elf;
+to_race(11) -> draenei.
 
 %% @type class() = warrior | paladin | hunter | rogue |
 %%                 priest | death_knight | shaman |
 %%                 mage | warlock | druid.
 %% @spec class(class()) -> int().
-%% @spec class(int()) -> class().
-class(warrior)      -> 1;  class(1)  -> warrior;
-class(paladin)      -> 2;  class(2)  -> paladin;
-class(hunter)       -> 3;  class(3)  -> hunter;
-class(rogue)        -> 4;  class(4)  -> rogue;
-class(priest)       -> 5;  class(5)  -> priest;
-class(death_knight) -> 6;  class(6)  -> death_knight;
-class(shaman)       -> 7;  class(7)  -> shaman;
-class(mage)         -> 8;  class(8)  -> mage;
-class(warlock)      -> 9;  class(9)  -> warlock;
-class(druid)        -> 11; class(11) -> druid.
+class(warrior)      -> 1;
+class(paladin)      -> 2;
+class(hunter)       -> 3;
+class(rogue)        -> 4;
+class(priest)       -> 5;
+class(death_knight) -> 6;
+class(shaman)       -> 7;
+class(mage)         -> 8;
+class(warlock)      -> 9;
+class(druid)        -> 11.
+
+%% @spec to_class(int()) -> class().
+to_class(1)  -> warrior;
+to_class(2)  -> paladin;
+to_class(3)  -> hunter;
+to_class(4)  -> rogue;
+to_class(5)  -> priest;
+to_class(6)  -> death_knight;
+to_class(7)  -> shaman;
+to_class(8)  -> mage;
+to_class(9)  -> warlock;
+to_class(11) -> druid.
 
 %% @type reputation() = hated | hostile | unfriendly |
 %%                      neutral | friendly | honored |
